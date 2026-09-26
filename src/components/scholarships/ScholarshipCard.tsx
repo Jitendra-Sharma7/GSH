@@ -2,12 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import {
-  Bookmark,
-  CheckCircle2,
-  AlertCircle,
-  Layers
-} from "lucide-react";
+import { Bookmark, Layers } from "lucide-react";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
@@ -16,12 +11,13 @@ import { mockUniversities } from "@/lib/data/mock-universities";
 import { useStore } from "@/lib/store/useStore";
 import {
   formatDate,
-  getDeadlineUrgency,
   getDeadlineBadgeColor,
   getDeadlineLabel,
+  getDeadlineUrgency,
   getVerificationBadge,
-  truncate
 } from "@/lib/utils";
+import { useNow, daysUntilFrom } from "@/lib/useNow";
+import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface ScholarshipCardProps {
@@ -45,7 +41,23 @@ export function ScholarshipCard({
     ? mockUniversities.find((u) => u.id === scholarship.universityId)
     : null;
 
-  const urgency = getDeadlineUrgency(scholarship.deadline);
+  // Null until mounted, so the deadline badge renders identically on the server
+  // pass and after hydration. Urgency is derived from the same `daysLeft` value
+  // rather than re-reading the clock, so the colour and the countdown agree.
+  const now = useNow();
+  const daysLeft = now === null ? null : daysUntilFrom(now, scholarship.deadline);
+  const urgency: ReturnType<typeof getDeadlineUrgency> =
+    daysLeft === null
+      ? "unknown"
+      : daysLeft < 0
+        ? "closed"
+        : daysLeft <= 7
+          ? "urgent"
+          : daysLeft <= 15
+            ? "soon"
+            : daysLeft <= 30
+              ? "warning"
+              : "safe";
   const verification = getVerificationBadge(scholarship.verificationStatus);
 
   const handleSave = (e: React.MouseEvent) => {
@@ -144,7 +156,15 @@ export function ScholarshipCard({
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2 col-span-2 sm:col-span-1">
-            <span className="truncate font-medium">{formatDate(scholarship.deadline)}</span>
+            <span
+              className={cn(
+                "truncate rounded-md px-1.5 py-0.5 font-medium",
+                getDeadlineBadgeColor(urgency)
+              )}
+              title={getDeadlineLabel(urgency)}
+            >
+              {formatDate(scholarship.deadline)}
+            </span>
           </div>
         </div>
 

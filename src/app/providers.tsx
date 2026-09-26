@@ -1,10 +1,12 @@
 import React from "react";
 import { Toaster } from "react-hot-toast";
+import { CookieConsent } from "@/components/consent/CookieConsent";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <CookieConsent />
       <Toaster
         position="bottom-right"
         toastOptions={{

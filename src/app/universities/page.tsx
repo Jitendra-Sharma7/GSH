@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Search, ArrowRight, Globe, Users, ExternalLink } from "lucide-react";
+import { GraduationCap, Search, ArrowRight, ExternalLink } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { mockUniversities } from "@/lib/data/mock-universities";
 

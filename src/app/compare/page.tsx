@@ -2,8 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Layers, X, ArrowRight, Building, MapPin, DollarSign, Calendar, Check, FileText } from "lucide-react";
+import { Layers, X, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import { useStore } from "@/lib/store/useStore";
@@ -17,7 +16,6 @@ import { useEffect, useState } from "react";
 export default function ComparePage() {
   const { compareIds, toggleCompare, clearCompare } = useStore();
   const [scholarships, setScholarships] = useState<ScholarshipData[]>([]);
-  const router = useRouter();
 
   useEffect(() => {
     async function load() {

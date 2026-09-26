@@ -2,10 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Send, ShieldCheck, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { mockCountries } from "@/lib/data/mock-countries";
-import { mockFields } from "@/lib/data/mock-fields";
+
 import toast from "react-hot-toast";
 
 export default function SubmitScholarshipPage() {
@@ -212,7 +212,7 @@ export default function SubmitScholarshipPage() {
                     className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"
                   >
                     <option value="Undergraduate">Undergraduate</option>
-                    <option value="Master's">Master's</option>
+                    <option value="Master's">Master&apos;s</option>
                     <option value="PhD">PhD</option>
                     <option value="Postdoctoral">Postdoctoral</option>
                   </select>

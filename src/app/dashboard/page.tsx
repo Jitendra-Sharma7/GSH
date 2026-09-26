@@ -3,25 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  User,
-  Bookmark,
-  Target,
-  Bell,
-  TrendingUp,
-  Calendar,
-  Award,
-  Settings,
-  LogOut,
-  Sparkles,
-  AlertCircle
-} from "lucide-react";
+import { Bookmark, Target, TrendingUp, Calendar, Award, Settings, LogOut, Sparkles, AlertCircle } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { useStore } from "@/lib/store/useStore";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { formatDate } from "@/lib/utils";
+import { useNow, daysUntilFrom } from "@/lib/useNow";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -29,6 +18,7 @@ export default function DashboardPage() {
   const [savedScholarships, setSavedScholarships] = useState<ScholarshipData[]>([]);
   const [recommendedScholarships, setRecommendedScholarships] = useState<ScholarshipData[]>([]);
   const [loading, setLoading] = useState(true);
+  const now = useNow();
 
   useEffect(() => {
     // Simple client-side auth check
@@ -78,9 +68,11 @@ export default function DashboardPage() {
   const upcomingDeadlines = applications
     .filter((app) => {
       if (!app.scholarship.deadline) return false;
-      const deadline = new Date(app.scholarship.deadline);
-      const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return daysLeft > 0 && daysLeft <= 30;
+      // No stable "now" until mounted; treat every tracked deadline as upcoming
+      // rather than rendering a count that differs from the server pass.
+      if (now === null) return true;
+      const daysLeft = daysUntilFrom(now, app.scholarship.deadline);
+      return daysLeft !== null && daysLeft > 0 && daysLeft <= 30;
     })
     .sort((a, b) => {
       const aTime = new Date(a.scholarship.deadline!).getTime();
@@ -275,7 +267,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
                   <Bookmark className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">You haven't saved any scholarships yet</p>
+                  <p className="text-sm text-gray-500">You haven&apos;t saved any scholarships yet</p>
                   <Link
                     href="/scholarships"
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary-600"
@@ -298,9 +290,7 @@ export default function DashboardPage() {
               {upcomingDeadlines.length > 0 ? (
                 <div className="space-y-3">
                   {upcomingDeadlines.map((app) => {
-                    const daysLeft = Math.ceil(
-                      (new Date(app.scholarship.deadline!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                    );
+                    const daysLeft = now === null ? null : daysUntilFrom(now, app.scholarship.deadline);
                     return (
                       <div key={app.id} className="border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
                         <Link
@@ -310,10 +300,19 @@ export default function DashboardPage() {
                           {app.scholarship.title}
                         </Link>
                         <p className="text-xs text-gray-500 mt-1">
-                          {formatDate(app.scholarship.deadline)} •{" "}
-                          <span className={daysLeft <= 7 ? "text-red-600 font-bold" : "text-amber-600"}>
-                            {daysLeft} days left
-                          </span>
+                          {formatDate(app.scholarship.deadline)}
+                          {daysLeft !== null && (
+                            <>
+                              {" \u2022 "}
+                              <span
+                                className={
+                                  daysLeft <= 7 ? "text-red-600 font-bold" : "text-amber-600"
+                                }
+                              >
+                                {daysLeft} days left
+                              </span>
+                            </>
+                          )}
                         </p>
                       </div>
                     );

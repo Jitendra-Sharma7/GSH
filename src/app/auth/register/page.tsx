@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, LogIn, Mail, Lock } from "lucide-react";
-import { Container } from "@/components/layout/Layout";
+import { BookOpen } from "lucide-react";
+
 import { Input } from "@/components/ui/Forms";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/lib/store/useStore";
@@ -31,7 +31,7 @@ export default function RegisterPage() {
       } else {
         toast.error("Please fill in all fields");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to register");
     } finally {
       setLoading(false);

@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   CheckCircle2
 } from "lucide-react";
-import { Container, Flex, Grid } from "@/components/layout/Layout";
+import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
@@ -128,7 +128,7 @@ export default function HomePage() {
                     <option value="">Any Field of Study</option>
                     {mockFields.map((f) => (
                       <option key={f.id} value={f.name}>
-                        {f.icon} {f.name}
+                        {f.name}
                       </option>
                     ))}
                   </select>
@@ -145,8 +145,8 @@ export default function HomePage() {
                     className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
                   >
                     <option value="">All Degree Levels</option>
-                    <option value="Undergraduate">Undergraduate / Bachelor's</option>
-                    <option value="Master's">Master's / Postgraduate</option>
+                    <option value="Undergraduate">Undergraduate / Bachelor&apos;s</option>
+                    <option value="Master's">Master&apos;s / Postgraduate</option>
                     <option value="PhD">PhD / Doctorate</option>
                     <option value="Postdoctoral">Postdoctoral</option>
                   </select>
@@ -308,7 +308,7 @@ export default function HomePage() {
                   <div className="space-y-1.5 text-xs text-primary-100">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span>Degree level matches: Master's</span>
+                      <span>Degree level matches: Master&apos;s</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -326,7 +326,50 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 5. EXPLORE BY COUNTRY */}
+      {/* 5. FULLY FUNDED SCHOLARSHIPS */}
+      <section className="py-16 bg-white">
+        <Container>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-emerald-600">
+                Full Coverage
+              </div>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                Fully Funded Scholarships
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Opportunities where tuition and living costs are met by the awarding body.
+                Check the coverage breakdown on each listing for what is included.
+              </p>
+            </div>
+            <Link
+              href="/fully-funded"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700 sm:mt-0"
+            >
+              See all fully funded &rarr;
+            </Link>
+          </div>
+
+          {fullyFundedList.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {fullyFundedList.map((s) => (
+                <ScholarshipCard key={s.id} scholarship={s} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 p-10 text-center">
+              <p className="text-sm text-gray-600">
+                No fully funded opportunities are listed right now.{" "}
+                <Link href="/scholarships" className="font-semibold text-primary-600 hover:underline">
+                  Browse all scholarships
+                </Link>
+              </p>
+            </div>
+          )}
+        </Container>
+      </section>
+
+      {/* 6. EXPLORE BY COUNTRY */}
       <section className="py-16 bg-gray-50/50">
         <Container>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8">
@@ -375,7 +418,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 6. EXPLORE BY FIELD */}
+      {/* 7. EXPLORE BY FIELD */}
       <section className="py-16 bg-white">
         <Container>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8">
@@ -417,7 +460,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 7. HOW IT WORKS */}
+      {/* 8. HOW IT WORKS */}
       <section className="py-16 bg-gray-50 border-t border-gray-100">
         <Container>
           <div className="mx-auto max-w-2xl text-center mb-12">
@@ -463,7 +506,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 8. TRUST & VERIFICATION COMMITMENT */}
+      {/* 9. TRUST & VERIFICATION COMMITMENT */}
       <section className="py-16 bg-white border-t border-gray-100">
         <Container>
           <div className="rounded-3xl bg-primary-50/70 border border-primary-100 p-8 sm:p-12">
@@ -494,7 +537,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 9. NEWSLETTER / DEADLINE ALERTS */}
+      {/* 10. NEWSLETTER / DEADLINE ALERTS */}
       <section className="py-16 bg-gray-900 text-white">
         <Container>
           <div className="mx-auto max-w-2xl text-center">

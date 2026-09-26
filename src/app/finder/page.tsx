@@ -1,20 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import {
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
-  RotateCcw,
-  Check,
-  ShieldCheck,
-  Building,
-  Calendar,
-  ExternalLink
-} from "lucide-react";
+import { Sparkles, ArrowRight, ArrowLeft, RotateCcw, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
@@ -31,13 +18,26 @@ interface MatchResultItem {
   warnings?: string[];
 }
 
+interface FormData {
+  citizenship: string;
+  field: string;
+  degreeLevel: string;
+  targetCountries: string[];
+  gpa: string;
+  languageScore: string;
+  needFullFunding: boolean;
+  startYear: string;
+  experience: string;
+  priority: string;
+}
+
 export default function ScholarshipFinderPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchResultItem[] | null>(null);
 
   // Form State across 10 steps
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     citizenship: "np", // Nepal or other country as default
     field: "Computer Science",
     degreeLevel: "Master's",
@@ -50,7 +50,8 @@ export default function ScholarshipFinderPage() {
     priority: "Full Tuition + Living Expenses",
   });
 
-  const updateField = (key: string, value: any) => {
+  // Keyed generic so each field keeps its own value type instead of collapsing to any.
+  const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -178,19 +179,19 @@ export default function ScholarshipFinderPage() {
                     onChange={(e) => updateField("citizenship", e.target.value)}
                     className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"
                   >
-                    <option value="np">🇳🇵 Nepal</option>
-                    <option value="in">🇮🇳 India</option>
-                    <option value="pk">🇵🇰 Pakistan</option>
-                    <option value="ng">🇳🇬 Nigeria</option>
-                    <option value="ke">🇰🇪 Kenya</option>
-                    <option value="gh">🇬🇭 Ghana</option>
-                    <option value="bd">🇧🇩 Bangladesh</option>
-                    <option value="id">🇮🇩 Indonesia</option>
-                    <option value="vn">🇻🇳 Vietnam</option>
-                    <option value="br">🇧🇷 Brazil</option>
-                    <option value="mx">🇲🇽 Mexico</option>
-                    <option value="eg">🇪🇬 Egypt</option>
-                    <option value="other">🌍 Other Developing Nation / Global</option>
+                    <option value="np">Nepal</option>
+                    <option value="in">India</option>
+                    <option value="pk">Pakistan</option>
+                    <option value="ng">Nigeria</option>
+                    <option value="ke">Kenya</option>
+                    <option value="gh">Ghana</option>
+                    <option value="bd">Bangladesh</option>
+                    <option value="id">Indonesia</option>
+                    <option value="vn">Vietnam</option>
+                    <option value="br">Brazil</option>
+                    <option value="mx">Mexico</option>
+                    <option value="eg">Egypt</option>
+                    <option value="other">Other Developing Nation / Global</option>
                   </select>
                 </div>
               )}
@@ -206,13 +207,12 @@ export default function ScholarshipFinderPage() {
                         key={f.id}
                         type="button"
                         onClick={() => updateField("field", f.name)}
-                        className={`flex items-center gap-2 rounded-xl border p-3 text-left text-xs font-semibold transition-colors ${
+                        className={`rounded-xl border p-3 text-left text-xs font-semibold transition-colors ${
                           formData.field === f.name
                             ? "border-primary-600 bg-primary-50 text-primary-900"
                             : "border-gray-200 hover:bg-gray-50 text-gray-700"
                         }`}
                       >
-                        <span>{f.icon}</span>
                         <span className="truncate">{f.name}</span>
                       </button>
                     ))}

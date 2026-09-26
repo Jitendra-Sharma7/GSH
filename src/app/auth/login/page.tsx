@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, LogIn, Mail, Lock } from "lucide-react";
-import { Container } from "@/components/layout/Layout";
+import { BookOpen, LogIn } from "lucide-react";
+
 import { Input } from "@/components/ui/Forms";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/lib/store/useStore";
@@ -33,7 +33,7 @@ export default function LoginPage() {
       } else {
         toast.error("Please enter email and password");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to login");
     } finally {
       setLoading(false);
@@ -80,11 +80,6 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <div className="text-xs">
-                  <a href="#" className="font-semibold text-primary-600 hover:text-primary-500">
-                    Forgot password?
-                  </a>
-                </div>
               </div>
               <input
                 id="password"

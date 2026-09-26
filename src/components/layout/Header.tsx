@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container, Flex } from "@/components/layout/Layout";
+import { useStore } from "@/lib/store/useStore";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -21,9 +22,14 @@ const navItems = [
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Single source of truth for session state. Previously this read a separate
+  // localStorage key that nothing ever wrote, so the account menu never appeared.
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const userName = useStore((s) => s.user?.name ?? null);
+  const logout = useStore((s) => s.logout);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,25 +39,10 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    // Check auth state
-    const user = localStorage.getItem("scholaratlas_user");
-    if (user) {
-      try {
-        const parsed = JSON.parse(user);
-        setIsAuthenticated(true);
-        setUserName(parsed.name);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    }
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("scholaratlas_user");
-    setIsAuthenticated(false);
-    setUserName(null);
-    window.location.href = "/";
+    logout();
+    setIsMobileMenuOpen(false);
+    router.push("/");
   };
 
   return (

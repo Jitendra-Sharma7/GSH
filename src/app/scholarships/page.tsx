@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  Search,
-  SlidersHorizontal,
-  ArrowUpDown,
-  Sparkles,
-  Inbox,
-  RotateCcw
-} from "lucide-react";
+import { Search, SlidersHorizontal, Inbox, RotateCcw } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { SearchFilters } from "@/components/scholarships/SearchFilters";
@@ -41,8 +34,14 @@ function ScholarshipsContent() {
   const [loading, setLoading] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Sync state with URL params on mount / navigation
-  useEffect(() => {
+  // Re-sync filters when the URL changes (e.g. a country tile links in with
+  // ?country=de). Adjusting state during render is React's documented pattern
+  // for deriving state from a prop; the previous effect caused an extra
+  // cascading render on every navigation.
+  const urlKey = searchParams.toString();
+  const [lastUrlKey, setLastUrlKey] = useState(urlKey);
+  if (lastUrlKey !== urlKey) {
+    setLastUrlKey(urlKey);
     setFilters({
       query: searchParams.get("query") || "",
       country: searchParams.get("country") || "",
@@ -50,7 +49,8 @@ function ScholarshipsContent() {
       degree: searchParams.get("degree") || "",
       funding: searchParams.get("funding") || "",
     });
-  }, [searchParams]);
+    setPage(1);
+  }
 
   // Fetch scholarships when filters or page change
   useEffect(() => {
@@ -64,7 +64,7 @@ function ScholarshipsContent() {
         });
 
         // Apply client sort if needed
-        let sorted = [...res.data];
+        const sorted = [...res.data];
         if (sortOption === "deadline") {
           sorted.sort((a, b) => {
             if (!a.deadline) return 1;
@@ -183,7 +183,6 @@ function ScholarshipsContent() {
               filters={filters}
               onChange={handleFilterChange}
               onReset={handleResetFilters}
-              totalCount={result.total}
             />
           </div>
 
@@ -200,7 +199,6 @@ function ScholarshipsContent() {
                   handleResetFilters();
                   setIsMobileFilterOpen(false);
                 }}
-                totalCount={result.total}
               />
             </div>
           )}
@@ -219,7 +217,7 @@ function ScholarshipsContent() {
                 <Inbox className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <h3 className="text-base font-bold text-gray-900">No scholarships found</h3>
                 <p className="mt-1 text-sm text-gray-500 max-w-sm mx-auto">
-                  We couldn't find any opportunities matching your active filters. Try broadening your criteria or resetting filters.
+                  We couldn&apos;t find any opportunities matching your active filters. Try broadening your criteria or resetting filters.
                 </p>
                 <button
                   onClick={handleResetFilters}

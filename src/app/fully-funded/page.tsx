@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, ShieldCheck, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";

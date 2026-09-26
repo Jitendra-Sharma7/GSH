@@ -23,6 +23,28 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
 }
 
+/** Profile shape consumed by the matching engine. */
+export interface MatchProfile {
+  degreeLevel?: string;
+  field?: string;
+  citizenship?: string;
+  targetCountries?: string[];
+  gpa?: number | string | null;
+  languageScore?: string;
+  needFullFunding?: boolean;
+  startYear?: string;
+  experience?: string;
+  priority?: string;
+}
+
+export interface MatchResult {
+  scholarship: ScholarshipData;
+  score: number;
+  reasons: string[];
+  missing?: string[];
+  warnings?: string[];
+}
+
 // Data fetching layer to simulate a database or API
 export const api = {
   // --- Scholarships ---
@@ -127,7 +149,7 @@ export const api = {
   },
 
   // --- Matching Engine Algorithm ---
-  findMatches: async (userProfile: any): Promise<{scholarship: ScholarshipData, score: number, reasons: string[]}[]> => {
+  findMatches: async (userProfile: MatchProfile): Promise<MatchResult[]> => {
     // A simplified matching algorithm demonstrating the MVP behavior for AI matching
     await new Promise(resolve => setTimeout(resolve, 800)); // Simulate complex calculation
 
@@ -171,12 +193,19 @@ export const api = {
       }
 
       // 4. GPA Evaluation
-      if (userProfile.gpa && scholarship.minGpa) {
-        if (userProfile.gpa >= scholarship.minGpa) {
+      // The form collects GPA as text, so normalise before comparing numerically.
+      const profileGpa =
+        typeof userProfile.gpa === "number"
+          ? userProfile.gpa
+          : Number.parseFloat(String(userProfile.gpa ?? ""));
+      const hasProfileGpa = Number.isFinite(profileGpa) && profileGpa > 0;
+
+      if (hasProfileGpa && scholarship.minGpa) {
+        if (profileGpa >= scholarship.minGpa) {
           score += 10;
-          reasons.push(`Your GPA (${userProfile.gpa}) meets the requirement (${scholarship.minGpa})`);
+          reasons.push(`Your GPA (${profileGpa}) meets the requirement (${scholarship.minGpa})`);
         } else {
-          warnings.push(`Your GPA (${userProfile.gpa}) is below the requirement (${scholarship.minGpa})`);
+          warnings.push(`Your GPA (${profileGpa}) is below the requirement (${scholarship.minGpa})`);
           // Penalize score if critical requirement missed
           score -= 20;
         }

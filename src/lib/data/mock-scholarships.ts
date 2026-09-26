@@ -1,5 +1,5 @@
-import { mockCountries } from "./mock-countries";
-import { mockProviders } from "./mock-providers";
+
+
 import { mockUniversities } from "./mock-universities";
 
 export interface ScholarshipData {
@@ -537,7 +537,6 @@ const generateMoreScholarships = (): ScholarshipData[] => {
   ];
 
   for (let i = 0; i < 35; i++) {
-    const template = base[i % 5]; // Randomize base template
     const combo = combinations[i % combinations.length];
 
     // Determine category based on index for variety

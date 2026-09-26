@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar as CalendarIcon, Clock, Filter, ArrowRight } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { mockCountries } from "@/lib/data/mock-countries";
-import { formatDate, getDeadlineUrgency } from "@/lib/utils";
+
+import { useNow, daysUntilFrom } from "@/lib/useNow";
 
 export default function DeadlinesPage() {
   const [scholarships, setScholarships] = useState<ScholarshipData[]>([]);
   const [filter, setFilter] = useState<"all" | "urgent" | "month" | "upcoming">("all");
   const [loading, setLoading] = useState(true);
+  const now = useNow();
 
   useEffect(() => {
     async function load() {
@@ -33,7 +35,11 @@ export default function DeadlinesPage() {
   }, []);
 
   const filteredScholarships = scholarships.filter((s) => {
-    const days = Math.ceil((new Date(s.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    // Before mount we have no stable "now"; showing everything avoids a first
+    // paint that disagrees with the server-rendered output.
+    if (now === null) return true;
+    const days = daysUntilFrom(now, s.deadline);
+    if (days === null) return false;
     if (filter === "urgent") return days > 0 && days <= 15;
     if (filter === "month") return days > 0 && days <= 30;
     if (filter === "upcoming") return days > 30;
@@ -58,15 +64,15 @@ export default function DeadlinesPage() {
 
         {/* Filter Tabs */}
         <div className="mb-6 flex flex-wrap gap-2">
-          {[
+          {([
             { id: "all", label: "All Upcoming Deadlines" },
-            { id: "urgent", label: "Closing in ≤ 15 Days 🔥" },
+            { id: "urgent", label: "Closing in 15 Days or Less" },
             { id: "month", label: "Closing This Month" },
             { id: "upcoming", label: "Closing in 30+ Days" },
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id as any)}
+              onClick={() => setFilter(tab.id)}
               className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
                 filter === tab.id
                   ? "bg-primary-600 text-white"
@@ -89,9 +95,9 @@ export default function DeadlinesPage() {
           <div className="space-y-3">
             {filteredScholarships.map((s) => {
               const country = mockCountries.find((c) => c.id === s.countryId);
-              const days = Math.ceil((new Date(s.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-              const isUrgent = days > 0 && days <= 15;
-              const isClosed = days <= 0;
+              const days = now === null ? null : daysUntilFrom(now, s.deadline);
+              const isUrgent = days !== null && days > 0 && days <= 15;
+              const isClosed = days !== null && days <= 0;
 
               return (
                 <div

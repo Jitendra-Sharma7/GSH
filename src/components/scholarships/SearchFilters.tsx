@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Filter, X, RotateCcw } from "lucide-react";
+import { Filter, RotateCcw } from "lucide-react";
+import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { mockFields } from "@/lib/data/mock-fields";
 
@@ -17,14 +18,12 @@ interface SearchFiltersProps {
   filters: FilterState;
   onChange: (newFilters: FilterState) => void;
   onReset: () => void;
-  totalCount?: number;
 }
 
 export function SearchFilters({
   filters,
   onChange,
-  onReset,
-  totalCount
+  onReset
 }: SearchFiltersProps) {
   const degrees = [
     { value: "", label: "All Degree Levels" },
@@ -122,7 +121,7 @@ export function SearchFilters({
           <option value="">All Fields</option>
           {mockFields.map((f) => (
             <option key={f.id} value={f.name}>
-              {f.icon} {f.name}
+              {f.name}
             </option>
           ))}
         </select>
@@ -170,7 +169,7 @@ export function SearchFilters({
                 : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
             }`}
           >
-            Master's
+            Master&apos;s
           </button>
           <button
             onClick={() => handleSelect("country", "de")}
@@ -180,7 +179,12 @@ export function SearchFilters({
                 : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
             }`}
           >
-            🇩🇪 Germany
+            <CountryFlagWithName
+              code={mockCountries.find((c) => c.id === "de")?.code}
+              emoji={mockCountries.find((c) => c.id === "de")?.flag}
+              name="Germany"
+              size="xs"
+            />
           </button>
           <button
             onClick={() => handleSelect("field", "Computer Science")}
@@ -190,7 +194,7 @@ export function SearchFilters({
                 : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
             }`}
           >
-            💻 Computer Science
+            Computer Science
           </button>
         </div>
       </div>

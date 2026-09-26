@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Database, Eye, CheckCircle2, AlertTriangle, TrendingUp, Users, Search, Plus } from "lucide-react";
+import { Shield, Database, Eye, AlertTriangle, TrendingUp, Users, Search, Plus } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
@@ -81,14 +81,14 @@ export default function AdminDashboardPage() {
         {/* Actions Bar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            {[
+            {([
               { id: "all", label: "All Scholarships" },
               { id: "needs-verification", label: `Verification Queue (${needsVerification.length})` },
               { id: "expired", label: "Expired / Closed" },
-            ].map((tab) => (
+            ] as const).map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setFilter(tab.id as any)}
+                onClick={() => setFilter(tab.id)}
                 className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
                   filter === tab.id
                     ? "bg-primary-600 text-white"
@@ -219,10 +219,10 @@ export default function AdminDashboardPage() {
               Top Search Queries (Demo)
             </h3>
             <div className="space-y-2 text-xs text-gray-600">
-              <p>• "Fully funded master's scholarships" - 128 searches</p>
-              <p>• "Computer science PhD Germany" - 94 searches</p>
-              <p>• "Chevening scholarship" - 76 searches</p>
-              <p>• "DAAD scholarship 2027" - 63 searches</p>
+              <p>&bull; &ldquo;Fully funded master&apos;s scholarships&rdquo; &mdash; 128 searches</p>
+              <p>&bull; &ldquo;Computer science PhD Germany&rdquo; &mdash; 94 searches</p>
+              <p>&bull; &ldquo;Chevening scholarship&rdquo; &mdash; 76 searches</p>
+              <p>&bull; &ldquo;DAAD scholarship 2027&rdquo; &mdash; 63 searches</p>
             </div>
           </div>
         </div>

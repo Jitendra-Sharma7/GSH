@@ -2,12 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { Target, Calendar, Trash2, Plus, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Target, Calendar, Trash2, Plus, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { useStore, ApplicationTrackerItem } from "@/lib/store/useStore";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { formatDate } from "@/lib/utils";
+import { useNow, daysUntilFrom } from "@/lib/useNow";
 import toast from "react-hot-toast";
 
 const statusOptions: ApplicationTrackerItem['status'][] = [
@@ -38,6 +39,7 @@ const statusColors: Record<ApplicationTrackerItem['status'], string> = {
 
 export default function TrackerPage() {
   const { applications, updateApplicationStatus, removeApplication } = useStore();
+  const now = useNow();
 
   const handleStatusChange = (id: string, newStatus: ApplicationTrackerItem['status']) => {
     updateApplicationStatus(id, newStatus);
@@ -103,9 +105,8 @@ export default function TrackerPage() {
         <div className="space-y-4">
           {applications.map((app) => {
             const country = mockCountries.find(c => c.id === app.scholarship.countryId);
-            const daysUntilDeadline = app.scholarship.deadline
-              ? Math.ceil((new Date(app.scholarship.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-              : null;
+            const daysUntilDeadline =
+              now === null ? null : daysUntilFrom(now, app.scholarship.deadline);
 
             return (
               <div key={app.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs hover:shadow-md transition-shadow">

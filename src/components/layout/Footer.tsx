@@ -1,6 +1,8 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { Container, Flex, Grid } from "@/components/layout/Layout";
+import { Container, Grid } from "@/components/layout/Layout";
 
 export function Footer() {
   return (
@@ -95,6 +97,15 @@ export function Footer() {
                     </li>
                   ))}
                 </ul>
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent("gs:open-consent"))
+                  }
+                  className="mt-3 text-sm text-gray-400 underline-offset-2 transition-colors hover:text-white hover:underline"
+                >
+                  Manage cookie consent
+                </button>
               </div>
               <div>
                 <h4 className="mb-4 text-sm font-semibold text-white">Contact</h4>

@@ -50,6 +50,28 @@ interface AppState {
   clearRecentSearches: () => void;
 }
 
+/** Baseline profile shape, so partial restores always produce a complete object. */
+const EMPTY_PROFILE: UserProfile = {
+  name: '',
+  email: '',
+  degreeLevel: '',
+  field: '',
+  targetCountries: [],
+  gpa: null,
+  needFullFunding: false,
+  citizenship: ''
+};
+
+/** The subset of state written to localStorage. */
+interface PersistedState {
+  isAuthenticated: boolean;
+  user: UserProfile | null;
+  savedScholarshipIds: string[];
+  applications: ApplicationTrackerItem[];
+  recentSearches: string[];
+  compareIds: string[];
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -58,16 +80,7 @@ export const useStore = create<AppState>()(
 
       login: (email, name) => set({
         isAuthenticated: true,
-        user: {
-          email,
-          name,
-          degreeLevel: '',
-          field: '',
-          targetCountries: [],
-          gpa: null,
-          needFullFunding: false,
-          citizenship: ''
-        }
+        user: { ...EMPTY_PROFILE, email, name }
       }),
 
       logout: () => set({ isAuthenticated: false, user: null }),
@@ -136,11 +149,46 @@ export const useStore = create<AppState>()(
     {
       name: 'scholaratlas-storage', // key in local storage
       partialize: (state) => ({
+        // Session and profile must persist, otherwise login state and any profile
+        // edits are silently discarded on reload.
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
         savedScholarshipIds: state.savedScholarshipIds,
         applications: state.applications,
         recentSearches: state.recentSearches,
         compareIds: state.compareIds
-      }), // only persist these fields for anonymous users
+      }),
+      // Guard against a corrupt or stale payload breaking app start-up.
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<PersistedState>;
+        return {
+          ...current,
+          isAuthenticated: Boolean(saved.isAuthenticated && saved.user),
+          user: saved.user
+            ? { ...EMPTY_PROFILE, ...saved.user }
+            : null,
+          savedScholarshipIds: Array.isArray(saved.savedScholarshipIds)
+            ? saved.savedScholarshipIds
+            : [],
+          applications: Array.isArray(saved.applications) ? saved.applications : [],
+          recentSearches: Array.isArray(saved.recentSearches) ? saved.recentSearches : [],
+          compareIds: Array.isArray(saved.compareIds) ? saved.compareIds : [],
+        };
+      },
+      version: 2,
+      // v1 payloads lacked session/profile fields. Carry forward everything that
+      // was already saved rather than discarding a user's saved list.
+      migrate: (persisted) => {
+        const old = (persisted ?? {}) as Partial<PersistedState>;
+        return {
+          isAuthenticated: false,
+          user: null,
+          savedScholarshipIds: old.savedScholarshipIds ?? [],
+          applications: old.applications ?? [],
+          recentSearches: old.recentSearches ?? [],
+          compareIds: old.compareIds ?? [],
+        };
+      },
     }
   )
 );
