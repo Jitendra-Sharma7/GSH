@@ -65,7 +65,7 @@ Application should now run without icon-related errors. All removed icons have b
 
 To verify:
 ```bash
-cd scholaratlas
+cd "D:/CODES/Global Scholarships"
 npm run dev
 ```
 

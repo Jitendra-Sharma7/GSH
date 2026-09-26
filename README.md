@@ -1,211 +1,129 @@
-# ScholarAtlas - Global Scholarship Discovery Platform
+# Global Scholarship Hub
 
-A comprehensive, production-ready scholarship discovery platform built with Next.js 16, React 19, TypeScript, Tailwind CSS v4, and Prisma.
+A scholarship discovery platform. Students browse, filter, compare, and track
+scholarships; staff manage every listing through an admin panel backed by
+PostgreSQL.
 
-## 🚀 Features
+The rule that shapes every decision here: **never present a fact the data does
+not support.** Funding amounts, deadlines, eligibility, and verification status
+come from stored records. Anything a provider has not stated is shown as "Not
+stated", not as a confident "No". The headline figures on the homepage are
+counted from the database, not typed into a component.
 
-### Core Platform
-- **50+ Verified Demo Scholarships** with full metadata (DAAD, Fulbright, Chevening, Gates Cambridge, etc.)
-- **20+ Country Profiles** with living costs, visa info, and scholarship counts
-- **22 Fields of Study** with career paths and salary data
-- **20 Top Global Universities** with rankings and program details
-- **Rich Scholarship Search** - Natural language queries, multi-criteria filtering, sorting, pagination
-- **AI Scholarship Finder** - 10-step interactive questionnaire with algorithmic matching (shows match % and reasons)
-- **Scholarship Comparison** - Side-by-side comparison tool (up to 4 scholarships)
-- **Application Tracker** - Kanban-style status management with deadline reminders
-- **Deadline Calendar** - Urgency-based filtering and visualization
-- **User Dashboard** - Saved scholarships, recommendations, profile completion tracker
-- **Admin Panel** - Scholarship management, verification queue, analytics preview
+## Stack
 
-### Trust & Verification
-- Every scholarship displays: Source, Last Verified Date, Official Links, Verification Status
-- Clear disclaimer: "Algorithmic matches are informational, not guaranteed eligibility"
-- Public submission form enters moderation queue (never auto-published)
+| | |
+|---|---|
+| Framework | Next.js 16.3.5 (App Router, React Server Components) |
+| UI | React 19.2.8, TypeScript, Tailwind CSS 3.4.17, lucide-react |
+| Data | PostgreSQL 17, Prisma 6.19.3 |
+| Client state | Zustand (saved scholarships, comparison, tracker, profile) |
+| Validation | Zod, on the server, on every write path |
+| Auth | bcrypt hashing, HMAC-SHA256 session tokens, HTTP-only cookies |
 
-### Architecture
-- **Data Layer**: Robust in-memory mock database (`src/lib/data/`) - easily replaceable with Prisma when PostgreSQL is connected
-- **State Management**: Zustand with localStorage persistence for saved scholarships, tracker, comparison
-- **Authentication**: Demo auth system (any email/password works for MVP)
-- **Responsive Design**: Mobile-first, accessible, optimized for all screen sizes
+## Setup
 
-## 📦 Tech Stack
-
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **Database ORM**: Prisma (PostgreSQL schema ready)
-- **State**: Zustand
-- **Forms**: React Hook Form + Zod validation
-- **Icons**: Lucide React
-- **Toasts**: React Hot Toast
-
-## 🛠️ Setup Instructions
-
-### Prerequisites
-- Node.js 20+ and npm
-- PostgreSQL (optional for MVP - app works with mock data)
-
-### Installation
+Requires Node.js 20+ and a PostgreSQL database.
 
 ```bash
-# Navigate to project directory
-cd scholaratlas
-
-# Install dependencies
 npm install
-
-# (Optional) Set up PostgreSQL database
-# 1. Create a PostgreSQL database named 'scholaratlas'
-# 2. Update DATABASE_URL in .env
-# 3. Run Prisma migrations:
-npm run db:push
-
-# Start development server
+cp .env.example .env      # then fill in DATABASE_URL and NEXTAUTH_SECRET
+npx prisma db push --skip-generate --accept-data-loss
+npx prisma generate
+npm run db:seed           # idempotent; prints the admin it created
 npm run dev
 ```
 
-Visit `http://localhost:3000`
+Open `http://localhost:3000`. The staff panel is at `/admin/login`.
 
-### Environment Variables
+`prisma migrate dev` does not work in this environment: the database role
+cannot create a shadow database (`P3014`). `prisma db push` is the supported
+path. On Windows, stop the running server before `prisma generate` — the query
+engine DLL stays locked while it is up.
 
-```env
-# Database (optional for MVP)
-DATABASE_URL="postgresql://localhost:5432/scholaratlas"
-
-# Next.js
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-change-in-production"
-NODE_ENV="development"
-APP_URL="http://localhost:3000"
-```
-
-## 📂 Project Structure
-
-```
-scholaratlas/
-├── src/
-│   ├── app/                      # Next.js App Router pages
-│   │   ├── page.tsx              # Homepage
-│   │   ├── scholarships/         # Search & details pages
-│   │   ├── finder/               # AI Scholarship Finder
-│   │   ├── dashboard/            # User dashboard
-│   │   ├── tracker/              # Application tracker
-│   │   ├── compare/              # Comparison tool
-│   │   ├── deadlines/            # Deadline calendar
-│   │   ├── countries/            # Country directory
-│   │   ├── universities/         # University directory
-│   │   ├── fields/               # Fields of study
-│   │   ├── fully-funded/         # Curated fully-funded list
-│   │   ├── auth/                 # Login & register
-│   │   ├── admin/                # Admin dashboard
-│   │   └── ...                   # Other pages
-│   ├── components/
-│   │   ├── scholarships/         # ScholarshipCard, SearchFilters
-│   │   ├── layout/               # Header, Footer, Layout components
-│   │   └── ui/                   # Reusable UI components
-│   ├── lib/
-│   │   ├── data/                 # Mock data layer
-│   │   │   ├── mock-scholarships.ts  # 50+ demo scholarships
-│   │   │   ├── mock-countries.ts     # 20 country profiles
-│   │   │   ├── mock-fields.ts        # 22 fields of study
-│   │   │   ├── mock-universities.ts  # 20 universities
-│   │   │   ├── mock-providers.ts     # 15 providers
-│   │   │   └── store.ts              # Data access API
-│   │   ├── store/                # Zustand client state
-│   │   │   └── useStore.ts       # Global app state
-│   │   ├── auth.ts               # Auth utilities
-│   │   ├── prisma.ts             # Prisma client
-│   │   └── utils.ts              # Helper functions
-│   └── prisma/
-│       └── schema.prisma         # Complete database schema
-```
-
-## 🎯 Key Pages
-
-| Route | Description |
-|-------|-------------|
-| `/` | Homepage with hero, search, featured scholarships |
-| `/scholarships` | Global search with filters & sorting |
-| `/scholarships/[id]` | Detailed scholarship page |
-| `/finder` | 10-step AI matching questionnaire |
-| `/dashboard` | User dashboard (requires login) |
-| `/tracker` | Application tracker (requires login) |
-| `/compare` | Side-by-side comparison |
-| `/deadlines` | Deadline calendar |
-| `/countries` | Country directory |
-| `/universities` | University directory |
-| `/fields` | Fields of study |
-| `/fully-funded` | Curated fully-funded list |
-| `/submit-scholarship` | Public submission form |
-| `/admin` | Admin dashboard |
-
-## 🔐 Authentication
-
-For MVP demonstration, any email and password combination will work:
-- Try: `student@example.com` / `password123`
-
-## 🗄️ Database
-
-The Prisma schema is production-ready with models for:
-- Users (with profile fields)
-- Scholarships (comprehensive fields)
-- Countries, Universities, Fields, Providers
-- SavedScholarships, Applications, Notifications, Alerts
-- Documents, Guides, FAQs, Blog Posts
-
-**Current Mode**: Mock data (no database required)
-**Production Mode**: Connect PostgreSQL and run `npm run db:push`
-
-## 🎨 Design Philosophy
-
-- **Trustworthy**: Every scholarship shows source and verification status
-- **Transparent**: Clear match explanations, never guarantee eligibility
-- **Student-First**: Zero fees, no deceptive SEO tactics
-- **Accessible**: WCAG-compliant, keyboard navigable
-- **Fast**: Optimized Core Web Vitals, efficient caching
-
-## 📊 Demo Data
-
-The platform includes:
-- **50+ Realistic Scholarships** (Chevening, Fulbright, DAAD, Gates Cambridge, Rhodes, etc.)
-- **20 Countries** with flags, living costs, visa requirements
-- **22 Academic Fields** with career paths and salaries
-- **20 Top Universities** (Harvard, MIT, Oxford, Cambridge, Stanford, etc.)
-- **15 Scholarship Providers** (government agencies, foundations)
-
-## 🚢 Deployment
+## Commands
 
 ```bash
-# Build for production
-npm run build
-
-# Start production server
-npm run start
+npm run dev         # development server
+npm run build       # production build
+npm run start       # serve the production build
+npm run typecheck   # tsc --noEmit
+npm run lint
+npm run db:push     # apply schema.prisma
+npm run db:seed     # seed data and the first admin
+npm run db:studio   # browse the database
 ```
 
-Deploy to Vercel, AWS, or any Node.js hosting platform.
+## Environment
 
-## 📝 License
+See `.env.example` for the full list. The ones that matter most:
 
-This is a demonstration project built per specification.
+- `DATABASE_URL` — PostgreSQL connection string.
+- `NEXTAUTH_SECRET` — long random string used to sign session cookies.
+- `NEXT_PUBLIC_SITE_URL` — absolute origin for canonical URLs and social cards.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — read only by the seed, to create the first
+  administrator. Create further admins through `/admin/users` instead.
+- `RATE_LIMIT_MAX_REQUESTS` / `RATE_LIMIT_WINDOW_MS` — throttle for login,
+  submission intake, and upload.
 
-## 🤝 Contributing
+## What the platform does
 
-This is an MVP. For production:
-1. Connect real PostgreSQL database
-2. Replace mock auth with NextAuth.js or similar
-3. Implement real scholarship verification workflow
-4. Add rate limiting and security middleware
-5. Set up email notification system
-6. Integrate analytics (privacy-conscious)
+**Public:** scholarship search with country, field, degree, funding, and deadline
+filters; full listing pages with coverage breakdowns and official source links;
+a ten-step eligibility matcher that explains every score; country, university,
+and field directories; deadline calendar; comparison of up to four listings;
+application tracker; guides, blog, and FAQ; public submission intake.
 
-## ⚠️ Important Disclaimers
+**Admin:** dashboard metrics; scholarship CMS with publishing, featuring,
+duplicate detection, trash and restore; registry-driven CRUD for universities,
+countries, fields, blog, resources, media, and users; submission inbox with
+conversion; activity log with CSV export; role-gated settings.
 
-- **Demo Data**: All scholarships are examples with realistic metadata
-- **Verification**: Production system requires human verification workflow
-- **No Guarantees**: Platform provides information only, not eligibility determination
-- **Official Sources**: Users must always verify with official provider websites
+## Verification
 
----
+Four scripts exercise a running server over real HTTP, replaying the hidden
+server-action fields a browser would post. They need `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` in the environment and a server on `http://localhost:3000`.
 
-**Built with ❤️ for global student opportunity**
+```bash
+npm run verify            # all four, in order
+npm run verify:auth       # session boundary, roles, logout
+npm run verify:content    # registry CRUD, publishing, submissions,
+                          # settings, public visibility
+npm run verify:crud       # create, edit, publish, trash, restore
+npm run verify:public     # admin edits reach the public pages
+```
+
+These drive the real admin UI, so a run creates real rows. Afterwards:
+
+```bash
+npm run clean:test-records   # deletes everything the suites created
+```
+
+Without `--apply` the cleanup script only reports what it found, so it is safe
+to run against a database you want to inspect first.
+
+## Seed data
+
+`npm run db:seed` loads 50 scholarships, 20 countries, 22 fields, 20
+universities, 15 providers, 3 blog posts, 8 guides, and 15 FAQs. The datasets
+live in `prisma/seed-data/` and are imported by the seed only — no runtime code
+reads them. Re-running the seed updates existing rows by slug or question rather
+than duplicating them.
+
+These are realistic sample records, not verified live opportunities. Treat them
+as placeholders until staff replace them with sourced data.
+
+## Further reading
+
+`PROJECT_SUMMARY.md` covers the data visibility rules, the directory layout, and
+the constraints worth knowing before changing the schema.
+
+## Disclaimers
+
+- The platform provides information. It does not award funding and does not
+  accept applications; every application goes to the awarding organisation's own
+  site.
+- Eligibility is never determined here. Match scores are explainable heuristics,
+  not admissions decisions.
+- Users must confirm current requirements on the official provider page.

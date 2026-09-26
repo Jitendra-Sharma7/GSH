@@ -2,26 +2,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/Layout";
-import { posts } from "@/lib/data/content";
+import { getPublicPostBySlug, getPublicPosts } from "@/lib/data/public";
+import { formatDate } from "@/lib/utils";
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
+  const posts = await getPublicPosts();
   return posts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = posts.find((p) => p.slug === slug);
+  const post = await getPublicPostBySlug(slug);
   if (!post) return { title: "Article Not Found" };
   return {
     title: post.title,
-    description: post.excerpt,
+    description: post.excerpt ?? undefined,
     openGraph: {
       title: post.title,
-      description: post.excerpt,
+      description: post.excerpt ?? undefined,
       type: "article",
       publishedTime: post.published,
     },
@@ -30,7 +32,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 
 export default async function BlogPostPage({ params }: PostPageProps) {
   const { slug } = await params;
-  const post = posts.find((p) => p.slug === slug);
+  const post = await getPublicPostBySlug(slug);
 
   if (!post) notFound();
 
@@ -52,22 +54,26 @@ export default async function BlogPostPage({ params }: PostPageProps) {
         <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs sm:p-10">
           <header>
             <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-              <span className="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700">
-                {post.category}
-              </span>
+              {post.category && (
+                <span className="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700">
+                  {post.category}
+                </span>
+              )}
               <span>{post.readMinutes} min read</span>
             </div>
             <h1 className="text-2xl font-extrabold text-gray-950 sm:text-3xl">{post.title}</h1>
-            <p className="mt-3 text-base text-gray-600">{post.excerpt}</p>
+            {post.excerpt && <p className="mt-3 text-base text-gray-600">{post.excerpt}</p>}
             <p className="mt-4 border-b border-gray-100 pb-5 text-xs text-gray-500">
-              {post.author} &middot; Published {post.published}
+              {post.author ?? "Editorial team"} &middot; Published {formatDate(post.published)}
             </p>
           </header>
 
           <div className="mt-6 space-y-7">
-            {post.sections.map((section) => (
-              <section key={section.heading}>
-                <h2 className="text-lg font-bold text-gray-900">{section.heading}</h2>
+            {post.sections.map((section, index) => (
+              <section key={`${section.heading}-${index}`}>
+                {section.heading && (
+                  <h2 className="text-lg font-bold text-gray-900">{section.heading}</h2>
+                )}
                 <div className="mt-2 space-y-3">
                   {section.body.map((para, i) => (
                     <p key={i} className="text-sm leading-relaxed text-gray-700">

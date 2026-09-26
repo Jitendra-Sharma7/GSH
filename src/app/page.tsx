@@ -13,14 +13,15 @@ import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
-import type { PublicScholarship } from "@/lib/data/public";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockFields } from "@/lib/data/mock-fields";
+import type { PublicCountry, PublicField, PublicScholarship, PublicStats } from "@/lib/data/public";
 
 export default function HomePage() {
   const router = useRouter();
   const [featuredScholarships, setFeaturedScholarships] = useState<PublicScholarship[]>([]);
   const [fullyFundedList, setFullyFundedList] = useState<PublicScholarship[]>([]);
+  const [countries, setCountries] = useState<PublicCountry[]>([]);
+  const [fields, setFields] = useState<PublicField[]>([]);
+  const [stats, setStats] = useState<PublicStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Search Bar State
@@ -31,10 +32,18 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const featured = await api.getScholarships({ limit: 6 });
-        const fullyFunded = await api.getScholarships({ funding: "fully-funded", limit: 3 });
+        const [featured, fullyFunded, countryList, fieldList, headlineStats] = await Promise.all([
+          api.getScholarships({ limit: 6 }),
+          api.getScholarships({ funding: "fully-funded", limit: 3 }),
+          api.getCountries(),
+          api.getFields(),
+          api.getStats(),
+        ]);
         setFeaturedScholarships(featured.data);
         setFullyFundedList(fullyFunded.data);
+        setCountries(countryList);
+        setFields(fieldList);
+        setStats(headlineStats);
       } finally {
         setLoading(false);
       }
@@ -55,7 +64,7 @@ export default function HomePage() {
     { label: "Fully Funded Scholarships", href: "/scholarships?funding=fully-funded" },
     { label: "Master's in Germany", href: "/scholarships?country=de&degree=Master's" },
     { label: "Undergraduate in USA", href: "/scholarships?country=us&degree=Undergraduate" },
-    { label: "Computer Science", href: "/scholarships?field=Computer Science" },
+    { label: "Computer Science", href: "/scholarships?field=cs" },
     { label: "No Application Fee", href: "/scholarships" },
     { label: "Chevening & Commonwealth", href: "/scholarships?query=Chevening" },
     { label: "DAAD Scholarships", href: "/scholarships?query=DAAD" },
@@ -95,14 +104,14 @@ export default function HomePage() {
                 href="/finder"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-primary-500/20 transition-all hover:bg-primary-700 hover:shadow-lg"
               >
-                Find My Scholarships (AI Matcher)
+                Find My Scholarships (Matcher)
               </Link>
 
               <Link
                 href="/scholarships"
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3.5 text-base font-semibold text-gray-700 shadow-xs transition-colors hover:bg-gray-50"
               >
-                Browse All 1,200+ Opportunities
+                Browse All Opportunities
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -126,8 +135,8 @@ export default function HomePage() {
                     className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
                   >
                     <option value="">Any Field of Study</option>
-                    {mockFields.map((f) => (
-                      <option key={f.id} value={f.name}>
+                    {fields.map((f) => (
+                      <option key={f.id} value={f.id}>
                         {f.name}
                       </option>
                     ))}
@@ -163,7 +172,7 @@ export default function HomePage() {
                     className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
                   >
                     <option value="">Any Destination Country</option>
-                    {mockCountries.map((c) => (
+                    {countries.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
@@ -210,20 +219,36 @@ export default function HomePage() {
         <Container>
           <div className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
             <div>
-              <p className="text-3xl font-extrabold text-primary-600">1,200+</p>
-              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Active Scholarships</p>
+              <p className="text-3xl font-extrabold text-primary-600">
+                {stats ? stats.openScholarships.toLocaleString() : "—"}
+              </p>
+              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Open Scholarships
+              </p>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-gray-900">85+</p>
-              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Destinations Worldwide</p>
+              <p className="text-3xl font-extrabold text-gray-900">
+                {stats ? stats.countries : "—"}
+              </p>
+              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Destinations Worldwide
+              </p>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-emerald-600">$45M+</p>
-              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Total Annual Funding</p>
+              <p className="text-3xl font-extrabold text-emerald-600">
+                {stats ? stats.universities : "—"}
+              </p>
+              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Universities Listed
+              </p>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-indigo-600">100%</p>
-              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">Official Verified Sources</p>
+              <p className="text-3xl font-extrabold text-indigo-600">
+                {stats ? `${stats.verifiedShare}%` : "—"}
+              </p>
+              <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Verified Recently
+              </p>
             </div>
           </div>
         </Container>
@@ -268,7 +293,7 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* 4. SCHOLARSHIP FINDER PROMO (AI MATCHER) */}
+      {/* 4. SCHOLARSHIP FINDER PROMO */}
       <section className="py-16 bg-gradient-to-r from-primary-900 to-indigo-900 text-white relative overflow-hidden">
         <div className="absolute right-0 top-0 -mt-12 -mr-12 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl pointer-events-none" />
         <Container>
@@ -300,8 +325,12 @@ export default function HomePage() {
             <div className="lg:col-span-5">
               <div className="rounded-2xl border border-white/10 bg-white/10 p-6 backdrop-blur-md">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-primary-200">Interactive Match Preview</span>
-                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300 font-medium">94% Match</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-primary-200">
+                    Example Match Breakdown
+                  </span>
+                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300 font-medium">
+                    Illustrative
+                  </span>
                 </div>
                 <div className="space-y-3">
                   <div className="text-sm font-bold text-white">DAAD EPOS Postgraduate Scholarship</div>
@@ -312,7 +341,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span>Nationality eligible: Developing Nations list</span>
+                      <span>Field of study matches: Computer Science</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -388,12 +417,12 @@ export default function HomePage() {
               href="/countries"
               className="mt-4 sm:mt-0 inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700"
             >
-              All 20+ countries →
+              {countries.length} countries →
             </Link>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {mockCountries.slice(0, 12).map((c) => (
+            {countries.slice(0, 12).map((c) => (
               <Link
                 key={c.id}
                 href={`/scholarships?country=${c.id}`}
@@ -402,7 +431,6 @@ export default function HomePage() {
                 <div className="mb-2">
                   <CountryFlag
                     code={c.code}
-                    emoji={c.flag}
                     name={c.name}
                     size="lg"
                     className="shadow-sm"
@@ -442,10 +470,10 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {mockFields.slice(0, 8).map((f) => (
+            {fields.slice(0, 8).map((f) => (
               <Link
                 key={f.id}
-                href={`/scholarships?field=${encodeURIComponent(f.name)}`}
+                href={`/scholarships?field=${encodeURIComponent(f.id)}`}
                 className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 transition-all hover:border-primary-400 hover:bg-primary-50/30 shadow-xs"
               >
                 <div className="min-w-0">

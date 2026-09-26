@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles, ArrowRight, ArrowLeft, RotateCcw, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockFields } from "@/lib/data/mock-fields";
 import { api } from "@/lib/data/store";
-import type { PublicScholarship } from "@/lib/data/public";
+import type { PublicCountry, PublicField, PublicScholarship } from "@/lib/data/public";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 
 interface MatchResultItem {
@@ -38,7 +36,7 @@ export default function ScholarshipFinderPage() {
 
   // Form State across 10 steps
   const [formData, setFormData] = useState<FormData>({
-    citizenship: "np", // Nepal or other country as default
+    citizenship: "", // No default: the visitor picks from the published list.
     field: "Computer Science",
     degreeLevel: "Master's",
     targetCountries: ["de", "us", "gb"],
@@ -49,6 +47,23 @@ export default function ScholarshipFinderPage() {
     experience: "1-2 Years Professional Experience",
     priority: "Full Tuition + Living Expenses",
   });
+
+  // The questionnaire options come from the published records, so a country an
+  // editor unpublishes drops out of the form rather than silently never matching.
+  const [countries, setCountries] = useState<PublicCountry[]>([]);
+  const [fields, setFields] = useState<PublicField[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([api.getCountries(), api.getFields()]).then(([c, f]) => {
+      if (!active) return;
+      setCountries(c);
+      setFields(f);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Keyed generic so each field keeps its own value type instead of collapsing to any.
   const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -97,7 +112,7 @@ export default function ScholarshipFinderPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700 mb-3">
             <Sparkles className="h-3.5 w-3.5 text-primary-600" />
-            <span>AI Eligibility & Scholarship Matcher</span>
+            <span>Eligibility &amp; Scholarship Matcher</span>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-950 sm:text-4xl">
             Scholarship Finder
@@ -134,6 +149,19 @@ export default function ScholarshipFinderPage() {
                 <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
                   <strong>Important Notice:</strong> Matches are algorithmic recommendations based on your inputs and do not guarantee formal admission or funding. Always verify official requirements directly with the provider.
+                </span>
+              </div>
+
+              {/* The questionnaire asks for citizenship, but the listings store
+                  nationality rules as prose ("Chevening-eligible countries"),
+                  so scoring them would be guesswork. Say so rather than imply
+                  the answer changed the ranking. */}
+              <div className="mt-3 rounded-xl bg-white/80 p-3 text-xs text-gray-600 border border-emerald-100 flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Not scored:</strong> Your citizenship is not part of this ranking. Scholarship
+                  eligibility by nationality is published in prose by each provider, so check your
+                  eligibility on the official source before applying.
                 </span>
               </div>
             </div>
@@ -179,18 +207,12 @@ export default function ScholarshipFinderPage() {
                     onChange={(e) => updateField("citizenship", e.target.value)}
                     className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"
                   >
-                    <option value="np">Nepal</option>
-                    <option value="in">India</option>
-                    <option value="pk">Pakistan</option>
-                    <option value="ng">Nigeria</option>
-                    <option value="ke">Kenya</option>
-                    <option value="gh">Ghana</option>
-                    <option value="bd">Bangladesh</option>
-                    <option value="id">Indonesia</option>
-                    <option value="vn">Vietnam</option>
-                    <option value="br">Brazil</option>
-                    <option value="mx">Mexico</option>
-                    <option value="eg">Egypt</option>
+                    <option value="">Select your country</option>
+                    {countries.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                     <option value="other">Other Developing Nation / Global</option>
                   </select>
                 </div>
@@ -202,7 +224,7 @@ export default function ScholarshipFinderPage() {
                   <h3 className="text-lg font-bold text-gray-900">2. What do you want to study? (Field of Study)</h3>
                   <p className="text-xs text-gray-500">Select your intended major or research discipline.</p>
                   <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-                    {mockFields.map((f) => (
+                    {fields.map((f) => (
                       <button
                         key={f.id}
                         type="button"
@@ -254,7 +276,7 @@ export default function ScholarshipFinderPage() {
                   <h3 className="text-lg font-bold text-gray-900">4. Where would you like to study?</h3>
                   <p className="text-xs text-gray-500">Select one or more destination preferences.</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {mockCountries.slice(0, 9).map((c) => {
+                    {countries.slice(0, 9).map((c) => {
                       const selected = formData.targetCountries.includes(c.id);
                       return (
                         <button
@@ -278,7 +300,6 @@ export default function ScholarshipFinderPage() {
                         >
                           <CountryFlag
                             code={c.code}
-                            emoji={c.flag}
                             name={c.name}
                             size="sm"
                           />

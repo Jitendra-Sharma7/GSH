@@ -7,26 +7,38 @@ import { Container } from "@/components/layout/Layout";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import { useStore } from "@/lib/store/useStore";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockProviders } from "@/lib/data/mock-providers";
+import type { PublicCountry, PublicScholarship } from "@/lib/data/public";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 export default function ComparePage() {
   const { compareIds, toggleCompare, clearCompare } = useStore();
-  const [scholarships, setScholarships] = useState<ScholarshipData[]>([]);
+  const [scholarships, setScholarships] = useState<PublicScholarship[]>([]);
+  const [countries, setCountries] = useState<PublicCountry[]>([]);
 
   useEffect(() => {
+    let active = true;
+    void api.getCountries().then((list) => {
+      if (active) setCountries(list);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     async function load() {
-      const loaded = await Promise.all(
-        compareIds.map((id) => api.getScholarshipById(id))
-      );
-      setScholarships(loaded.filter((s) => s !== undefined) as ScholarshipData[]);
+      const loaded = await Promise.all(compareIds.map((id) => api.getScholarshipById(id)));
+      if (!active) return;
+      setScholarships(loaded.filter((s): s is PublicScholarship => s !== undefined));
     }
     if (compareIds.length > 0) {
       load();
     }
+    return () => {
+      active = false;
+    };
   }, [compareIds]);
 
   if (compareIds.length === 0) {
@@ -52,25 +64,81 @@ export default function ComparePage() {
     );
   }
 
-  const comparisonRows = [
-    { key: "provider", label: "Provider / Organization", render: (s: ScholarshipData) => mockProviders.find(p => p.id === s.providerId)?.name || "N/A" },
-    { key: "country", label: "Destination Country", render: (s: ScholarshipData) => {
-      const c = mockCountries.find(c => c.id === s.countryId);
-      if (!c) return "Global";
-      return <CountryFlagWithName code={c.code} emoji={c.flag} name={c.name} size="sm" />;
-    }},
-    { key: "degrees", label: "Degree Levels", render: (s: ScholarshipData) => s.degreeLevels.join(", ") },
-    { key: "fields", label: "Fields of Study", render: (s: ScholarshipData) => s.fields.slice(0, 2).join(", ") + (s.fields.length > 2 ? "..." : "") },
-    { key: "fundingType", label: "Funding Type", render: (s: ScholarshipData) => s.fundingType.replace("-", " ").toUpperCase() },
-    { key: "tuition", label: "Tuition Coverage", render: (s: ScholarshipData) => s.tuitionCoverage ? "✅ 100% Covered" : "❌ Not Covered" },
-    { key: "stipend", label: "Monthly Stipend", render: (s: ScholarshipData) => s.livingStipend > 0 ? `${s.currency} ${s.livingStipend}/mo` : "❌ None" },
-    { key: "accommodation", label: "Accommodation", render: (s: ScholarshipData) => s.accommodationCoverage ? "✅ Included" : "❌ Not Included" },
-    { key: "travel", label: "Airfare / Travel", render: (s: ScholarshipData) => s.travelAllowance ? "✅ Round-trip flight" : "❌ Self-funded" },
-    { key: "insurance", label: "Health Insurance", render: (s: ScholarshipData) => s.healthInsurance ? "✅ Covered" : "❌ Not Covered" },
-    { key: "duration", label: "Duration", render: (s: ScholarshipData) => s.duration },
-    { key: "awards", label: "Number of Awards", render: (s: ScholarshipData) => s.numAwards?.toString() || "N/A" },
-    { key: "deadline", label: "Application Deadline", render: (s: ScholarshipData) => formatDate(s.deadline) },
-    { key: "appFee", label: "Application Fee", render: (s: ScholarshipData) => s.applicationFee === 0 ? "Free ($0)" : `$${s.applicationFee}` },
+  // Everything here reads the published record. A field the provider has not
+  // stated is shown as "Not stated" rather than a confident "No", because an
+  // unstated stipend is not the same as a scholarship without one.
+  const notStated = <span className="text-gray-400">Not stated</span>;
+
+  const comparisonRows: { key: string; label: string; render: (s: PublicScholarship) => React.ReactNode }[] = [
+    {
+      key: "provider",
+      label: "Provider / Organization",
+      render: (s) => s.providerName ?? <span className="text-gray-400">Not stated</span>,
+    },
+    {
+      key: "country",
+      label: "Destination Country",
+      render: (s) => {
+        if (!s.countryId) return "Global / multiple";
+        const c = countries.find((x) => x.id === s.countryId);
+        if (!c) return s.countryName ?? "Global / multiple";
+        return <CountryFlagWithName code={c.code} name={c.name} size="sm" />;
+      },
+    },
+    { key: "degrees", label: "Degree Levels", render: (s) => s.degreeLevels.join(", ") || notStated },
+    {
+      key: "fields",
+      label: "Fields of Study",
+      render: (s) =>
+        s.fields.slice(0, 2).join(", ") + (s.fields.length > 2 ? "..." : "") || notStated,
+    },
+    { key: "fundingType", label: "Funding Type", render: (s) => s.fundingType.replace(/-/g, " ") },
+    {
+      key: "tuition",
+      label: "Tuition Coverage",
+      render: (s) => (s.tuitionCoverage ? "Yes" : notStated),
+    },
+    {
+      key: "stipend",
+      label: "Living Stipend",
+      render: (s) =>
+        s.livingStipend != null && s.currency
+          ? `${s.currency} ${s.livingStipend.toLocaleString()}/mo`
+          : s.monthlyStipend != null && s.currency
+            ? `${s.currency} ${s.monthlyStipend.toLocaleString()}/mo`
+            : notStated,
+    },
+    {
+      key: "accommodation",
+      label: "Accommodation",
+      render: (s) => (s.accommodationCoverage ? "Included" : notStated),
+    },
+    {
+      key: "travel",
+      label: "Airfare / Travel",
+      render: (s) => (s.travelAllowance ? "Covered" : notStated),
+    },
+    {
+      key: "insurance",
+      label: "Health Insurance",
+      render: (s) => (s.healthInsurance ? "Covered" : notStated),
+    },
+    { key: "duration", label: "Duration", render: (s) => s.duration ?? notStated },
+    {
+      key: "awards",
+      label: "Number of Awards",
+      render: (s) => (s.numAwards != null ? s.numAwards.toLocaleString() : notStated),
+    },
+    { key: "deadline", label: "Application Deadline", render: (s) => formatDate(s.deadline) },
+    {
+      key: "appFee",
+      label: "Application Fee",
+      render: (s) => {
+        if (s.applicationFee == null) return notStated;
+        if (s.applicationFee === 0) return "Free";
+        return `${s.currency ?? ""} ${s.applicationFee.toLocaleString()}`.trim();
+      },
+    },
   ];
 
   return (
@@ -109,7 +177,7 @@ export default function ComparePage() {
                       {s.title}
                     </Link>
                     <p className="text-xs text-gray-500 mt-1">
-                      {mockProviders.find(p => p.id === s.providerId)?.name}
+                      {s.providerName ?? s.universityName}
                     </p>
                   </th>
                 ))}

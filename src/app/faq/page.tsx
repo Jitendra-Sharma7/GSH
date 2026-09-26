@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layout/Layout";
-import { faqs } from "@/lib/data/content";
+import { getPublicFaqs } from "@/lib/data/public";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions",
@@ -9,8 +9,21 @@ export const metadata: Metadata = {
     "Answers about how Global Scholarship Hub works, what our verification and match scores mean, how we handle your data, and how to submit or advertise with us.",
 };
 
-export default function FAQPage() {
-  const categories = Array.from(new Set(faqs.map((f) => f.category)));
+const UNCATEGORISED = "General";
+
+export default async function FAQPage() {
+  const faqs = await getPublicFaqs();
+
+  // Grouped from the published rows so an editor can re-file a question from the
+  // admin panel. Questions with no category still get shown.
+  const groups = new Map<string, typeof faqs>();
+  for (const faq of faqs) {
+    const key = faq.category ?? UNCATEGORISED;
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(faq);
+    else groups.set(key, [faq]);
+  }
+  const categories = [...groups.keys()];
 
   return (
     <div className="bg-gray-50/50 min-h-screen py-12">
@@ -40,13 +53,16 @@ export default function FAQPage() {
         </div>
 
         <div className="space-y-8">
-          {categories.map((category) => (
-            <section key={category}>
-              <h2 className="mb-4 text-lg font-bold text-gray-900">{category}</h2>
-              <div className="space-y-3">
-                {faqs
-                  .filter((f) => f.category === category)
-                  .map((faq) => (
+          {categories.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+              No questions have been published yet.
+            </p>
+          ) : (
+            categories.map((category) => (
+              <section key={category}>
+                <h2 className="mb-4 text-lg font-bold text-gray-900">{category}</h2>
+                <div className="space-y-3">
+                  {groups.get(category)!.map((faq) => (
                     <details
                       key={faq.question}
                       className="group rounded-2xl border border-gray-200 bg-white shadow-xs"
@@ -65,9 +81,10 @@ export default function FAQPage() {
                       </div>
                     </details>
                   ))}
-              </div>
-            </section>
-          ))}
+                </div>
+              </section>
+            ))
+          )}
         </div>
 
         {/* CTA */}

@@ -6,7 +6,6 @@ import { Target, Calendar, Trash2, Plus, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { useStore, ApplicationTrackerItem } from "@/lib/store/useStore";
-import { mockCountries } from "@/lib/data/mock-countries";
 import { formatDate } from "@/lib/utils";
 import { useNow, daysUntilFrom } from "@/lib/useNow";
 import toast from "react-hot-toast";
@@ -104,7 +103,8 @@ export default function TrackerPage() {
         {/* Application List */}
         <div className="space-y-4">
           {applications.map((app) => {
-            const country = mockCountries.find(c => c.id === app.scholarship.countryId);
+            // The tracker stores the published record itself, so the destination
+            // is read from the snapshot rather than looked up in a side list.
             const daysUntilDeadline =
               now === null ? null : daysUntilFrom(now, app.scholarship.deadline);
 
@@ -123,8 +123,12 @@ export default function TrackerPage() {
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
                       <span className="flex items-center gap-1.5">
-                        <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
-                        <span>{country?.name}</span>
+                        <CountryFlag
+                          code={app.scholarship.countryCode}
+                          name={app.scholarship.countryName ?? undefined}
+                          size="xs"
+                        />
+                        <span>{app.scholarship.countryName ?? "Global / multiple"}</span>
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-gray-400" />

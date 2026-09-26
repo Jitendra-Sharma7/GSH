@@ -7,7 +7,6 @@ import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
 import type { PublicScholarship } from "@/lib/data/public";
-import { mockCountries } from "@/lib/data/mock-countries";
 
 import { useNow, daysUntilFrom } from "@/lib/useNow";
 
@@ -94,7 +93,6 @@ export default function DeadlinesPage() {
         ) : (
           <div className="space-y-3">
             {filteredScholarships.map((s) => {
-              const country = mockCountries.find((c) => c.id === s.countryId);
               const days = now === null ? null : daysUntilFrom(now, s.deadline);
               const isUrgent = days !== null && days > 0 && days <= 15;
               const isClosed = days !== null && days <= 0;
@@ -127,8 +125,8 @@ export default function DeadlinesPage() {
                       </Link>
                       <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span className="inline-flex items-center gap-1.5">
-                          <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
-                          {country?.name}
+                          <CountryFlag code={s.countryCode} name={s.countryName ?? undefined} size="xs" />
+                          {s.countryName ?? "Global / multiple"}
                         </span>
                         <span>• {s.fundingType.replace('-', ' ').toUpperCase()} • {s.degreeLevels.join(', ')}</span>
                       </p>

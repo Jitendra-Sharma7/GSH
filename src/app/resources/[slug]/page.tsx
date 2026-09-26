@@ -1,28 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, CalendarDays } from "lucide-react";
+import { ArrowLeft, Clock, CalendarDays, Download, ExternalLink } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
-import { guides } from "@/lib/data/content";
+import { getPublicResourceBySlug, getPublicResources } from "@/lib/data/public";
+import { formatDate } from "@/lib/utils";
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return guides.map((g) => ({ slug: g.slug }));
+export async function generateStaticParams() {
+  const resources = await getPublicResources();
+  return resources.map((g) => ({ slug: g.slug }));
 }
 
 export async function generateMetadata({ params }: GuidePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const guide = guides.find((g) => g.slug === slug);
+  const guide = await getPublicResourceBySlug(slug);
   if (!guide) return { title: "Guide Not Found" };
   return {
     title: guide.title,
-    description: guide.excerpt,
+    description: guide.excerpt ?? undefined,
     openGraph: {
       title: guide.title,
-      description: guide.excerpt,
+      description: guide.excerpt ?? undefined,
       type: "article",
       publishedTime: guide.updated,
     },
@@ -31,11 +33,13 @@ export async function generateMetadata({ params }: GuidePageProps): Promise<Meta
 
 export default async function GuidePage({ params }: GuidePageProps) {
   const { slug } = await params;
-  const guide = guides.find((g) => g.slug === slug);
+  const guide = await getPublicResourceBySlug(slug);
 
   if (!guide) notFound();
 
-  const others = guides.filter((g) => g.slug !== slug).slice(0, 3);
+  const all = await getPublicResources();
+  const others = all.filter((g) => g.slug !== slug).slice(0, 3);
+  const download = guide.fileUrl ?? guide.url;
 
   return (
     <div className="bg-gray-50/50 min-h-screen py-12">
@@ -55,26 +59,44 @@ export default async function GuidePage({ params }: GuidePageProps) {
         <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs sm:p-10">
           <header>
             <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-              <span className="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700">
-                {guide.category}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {guide.readMinutes} min read
-              </span>
+              {guide.category && (
+                <span className="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700">
+                  {guide.category}
+                </span>
+              )}
+              {guide.sections.length > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {guide.readMinutes} min read
+                </span>
+              )}
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
-                Updated {guide.updated}
+                Updated {formatDate(guide.updated)}
               </span>
             </div>
             <h1 className="text-2xl font-extrabold text-gray-950 sm:text-3xl">{guide.title}</h1>
-            <p className="mt-3 text-base text-gray-600">{guide.excerpt}</p>
+            {guide.excerpt && <p className="mt-3 text-base text-gray-600">{guide.excerpt}</p>}
+
+            {download && guide.sections.length === 0 && (
+              <a
+                href={download}
+                {...(guide.url ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+              >
+                {guide.fileUrl ? <Download className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
+                {guide.fileUrl ? "Download" : "Open resource"}
+                {guide.url ? " (external)" : ""}
+              </a>
+            )}
           </header>
 
           <div className="mt-7 space-y-7">
-            {guide.sections.map((section) => (
-              <section key={section.heading}>
-                <h2 className="text-lg font-bold text-gray-900">{section.heading}</h2>
+            {guide.sections.map((section, index) => (
+              <section key={`${section.heading}-${index}`}>
+                {section.heading && (
+                  <h2 className="text-lg font-bold text-gray-900">{section.heading}</h2>
+                )}
                 <div className="mt-2 space-y-3">
                   {section.body.map((para, i) => (
                     <p key={i} className="text-sm leading-relaxed text-gray-700">

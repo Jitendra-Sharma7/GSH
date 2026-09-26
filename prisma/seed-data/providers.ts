@@ -11,7 +11,7 @@ export interface ProviderData {
   focusAreas: string[];
 }
 
-export const mockProviders: ProviderData[] = [
+export const seedProviders: ProviderData[] = [
   {
     id: "daad",
     name: "DAAD (German Academic Exchange Service)",

@@ -1,3 +1,4 @@
+import { DeadlineStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   fromPrismaFundingType,
@@ -561,6 +562,277 @@ export async function getPublicScholarshipById(
     include: scholarshipInclude,
   });
   return row ? toPublicScholarship(row, closingSoonDays) : null;
+}
+
+// --- Content: blog, resources, FAQs ---------------------------------------
+
+export interface ContentSection {
+  heading: string;
+  body: string[];
+}
+
+export interface PublicPost {
+  id: string;
+  slug: string;
+  title: string;
+  category: string | null;
+  excerpt: string | null;
+  author: string | null;
+  published: string;
+  readMinutes: number | null;
+  featuredImage: string | null;
+  sections: ContentSection[];
+  tags: string[];
+}
+
+export interface PublicResource {
+  id: string;
+  slug: string;
+  title: string;
+  category: string | null;
+  excerpt: string | null;
+  type: string;
+  url: string | null;
+  fileUrl: string | null;
+  thumbnail: string | null;
+  readMinutes: number | null;
+  updated: string;
+  sections: ContentSection[];
+  tags: string[];
+}
+
+export interface PublicFaq {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+}
+
+/**
+ * Splits stored markdown back into the `{ heading, body[] }` shape the public
+ * pages render. The seed writes the same format (`## Heading` then paragraphs),
+ * and an editor typing in the admin textarea produces the same thing, so a post
+ * written either way renders with its headings intact. Text with no `##`
+ * heading becomes a single untitled section rather than disappearing.
+ */
+function markdownToSections(markdown: string): ContentSection[] {
+  const text = (markdown ?? "").replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const blocks = text.split(/\n(?=##\s)/);
+  const sections: ContentSection[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    const first = lines[0] ?? "";
+    const isHeading = first.startsWith("## ");
+    const heading = isHeading ? first.slice(3).trim() : "";
+    const body = (isHeading ? lines.slice(1) : lines)
+      .join("\n")
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (heading || body.length > 0) sections.push({ heading, body });
+  }
+
+  return sections;
+}
+
+function estimateReadMinutes(sections: ContentSection[], words: number): number {
+  const fromText = Math.ceil(words / 220);
+  return Math.max(1, fromText);
+}
+
+export async function getPublicPosts(): Promise<PublicPost[]> {
+  const rows = await prisma.blogPost.findMany({
+    where: { ...VISIBLE, publishedAt: { not: null, lte: new Date() } },
+    orderBy: { publishedAt: "desc" },
+  });
+
+  return rows.map((p) => {
+    const sections = markdownToSections(p.content);
+    const words = sections.reduce(
+      (n, s) => n + s.body.join(" ").split(/\s+/).filter(Boolean).length,
+      0
+    );
+    return {
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      category: p.category,
+      excerpt: p.excerpt,
+      author: p.authorName,
+      published: (p.publishedAt ?? p.createdAt).toISOString(),
+      readMinutes: p.readingTime ?? estimateReadMinutes(sections, words),
+      featuredImage: p.featuredImage,
+      sections,
+      tags: p.tags,
+    };
+  });
+}
+
+export async function getPublicPostBySlug(slug: string): Promise<PublicPost | null> {
+  const posts = await getPublicPosts();
+  return posts.find((p) => p.slug === slug) ?? null;
+}
+
+export async function getPublicResources(): Promise<PublicResource[]> {
+  // Resources are the admin's `Resource` rows. The `Guide` table holds the same
+  // editorial content from an earlier schema, so it is merged in rather than
+  // left as an unreachable second copy of the same guides.
+  const [resources, guides] = await Promise.all([
+    prisma.resource.findMany({
+      where: VISIBLE,
+      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.guide.findMany({
+      where: { published: true, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const fromResources: PublicResource[] = resources.map((r) => {
+    const sections = markdownToSections(r.content ?? "");
+    const words = sections.reduce(
+      (n, s) => n + s.body.join(" ").split(/\s+/).filter(Boolean).length,
+      0
+    );
+    return {
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      category: r.category,
+      excerpt: r.description,
+      type: r.type,
+      url: r.url,
+      fileUrl: r.fileUrl,
+      thumbnail: r.thumbnail,
+      readMinutes: estimateReadMinutes(sections, words),
+      updated: r.updatedAt.toISOString(),
+      sections,
+      tags: r.tags,
+    };
+  });
+
+  const resourceSlugs = new Set(fromResources.map((r) => r.slug));
+  const fromGuides: PublicResource[] = guides
+    .filter((g) => !resourceSlugs.has(g.slug))
+    .map((g) => {
+      const sections = markdownToSections(g.content);
+      const words = sections.reduce(
+        (n, s) => n + s.body.join(" ").split(/\s+/).filter(Boolean).length,
+        0
+      );
+      return {
+        id: g.id,
+        slug: g.slug,
+        title: g.title,
+        category: g.category,
+        excerpt: g.excerpt,
+        type: "GUIDE",
+        url: null,
+        fileUrl: null,
+        thumbnail: null,
+        readMinutes: estimateReadMinutes(sections, words),
+        updated: g.updatedAt.toISOString(),
+        sections,
+        tags: [],
+      };
+    });
+
+  return [...fromResources, ...fromGuides].sort((a, b) => b.updated.localeCompare(a.updated));
+}
+
+export async function getPublicResourceBySlug(slug: string): Promise<PublicResource | null> {
+  const resources = await getPublicResources();
+  return resources.find((r) => r.slug === slug) ?? null;
+}
+
+export async function getPublicFaqs(): Promise<PublicFaq[]> {
+  const rows = await prisma.fAQ.findMany({
+    where: VISIBLE,
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  return rows.map((f) => ({
+    id: f.id,
+    question: f.question,
+    answer: f.answer,
+    category: f.category,
+  }));
+}
+
+export interface PublicStats {
+  /** Published listings a visitor can still act on. */
+  openScholarships: number;
+  /** Published, non-deleted countries. */
+  countries: number;
+  universities: number;
+  fields: number;
+  /**
+   * How many open listings state a funding amount. The amounts span several
+   * currencies, so they are counted rather than summed: adding USD to EUR
+   * would produce a number that means nothing.
+   */
+  listingsWithFunding: number;
+  /** Share of open listings an editor has verified recently, 0-100. */
+  verifiedShare: number;
+}
+
+/**
+ * Headline figures for the marketing strip.
+ *
+ * Every number is counted from the published records. The previous hard-coded
+ * "1,200+ scholarships / 85+ destinations / $45M+ funding" strip claimed far
+ * more than the database held, which is exactly the fabrication this project
+ * exists to avoid.
+ */
+export async function getPublicStats(now = new Date()): Promise<PublicStats> {
+  const visible: Prisma.ScholarshipWhereInput = { ...VISIBLE };
+  // Same default window the listing uses: a deadline that has passed, with no
+  // admin override holding it open, is not something a visitor can apply to.
+  const openWhere: Prisma.ScholarshipWhereInput = {
+    AND: [
+      visible,
+      {
+        OR: [
+          {
+            AND: [
+              { deadline: { gt: now } },
+              { OR: [{ openingDate: null }, { openingDate: { lte: now } }] },
+            ],
+          },
+          {
+            deadlineStatusOverride: {
+              in: [
+                DeadlineStatus.OPEN,
+                DeadlineStatus.OPENING_SOON,
+                DeadlineStatus.CLOSING_SOON,
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  const [openScholarships, countries, universities, fields, withFunding, verified] =
+    await Promise.all([
+      prisma.scholarship.count({ where: openWhere }),
+      prisma.country.count({ where: VISIBLE }),
+      prisma.university.count({ where: VISIBLE }),
+      prisma.field.count({ where: VISIBLE }),
+      prisma.scholarship.count({ where: { ...openWhere, fundingAmount: { not: null } } }),
+      prisma.scholarship.count({ where: { ...openWhere, verificationStatus: "VERIFIED_RECENTLY" } }),
+    ]);
+
+  return {
+    openScholarships,
+    countries,
+    universities,
+    fields,
+    listingsWithFunding: withFunding,
+    verifiedShare: openScholarships > 0 ? Math.round((verified / openScholarships) * 100) : 0,
+  };
 }
 
 export { DEFAULT_PUBLIC_STATUSES };

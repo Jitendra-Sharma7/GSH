@@ -531,7 +531,7 @@ async function main() {
   );
   if (created.countryId) {
     console.log(
-      `\nLeft behind for inspection: country ${created.countryId} (slug ${RUN_SLUG}). Remove it from /admin/countries.`
+      `\nLeft behind for inspection: country ${created.countryId} (slug ${RUN_SLUG}).\nRun "npm run clean:test-records" to remove every record these suites created.`
     );
   }
   process.exit(failures === 0 ? 0 : 1);

@@ -1,5 +1,5 @@
 {
-  "name": "scholaratlas",
+  "name": "global-scholarship-hub",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "verify:auth": "node scripts/verify-admin-auth.mjs",
+    "verify:crud": "node scripts/verify-scholarship-crud.mjs",
+    "verify:content": "node scripts/verify-admin-content.mjs",
+    "verify:public": "node scripts/verify-public-content.mjs",
+    "verify": "npm run verify:auth && npm run verify:crud && npm run verify:content && npm run verify:public",
+    "clean:test-records": "node scripts/clean-test-records.mjs --apply",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate",

@@ -1,9 +1,10 @@
-import type { PublicScholarship, PublicCountry, PublicField, PublicUniversity, PublicProvider } from "./public";
+import type { PublicScholarship, PublicCountry, PublicField, PublicUniversity, PublicProvider, PublicStats } from "./public";
 import {
   getPublicScholarships,
   getPublicScholarshipById,
   getPublicCountries,
   getPublicFields,
+  getPublicStats,
   getPublicUniversities,
   getPublicProviders,
 } from "./public";
@@ -155,6 +156,14 @@ export const api = {
   // --- Providers ---
   getProviders: async (): Promise<PublicProvider[]> =>
     isServer ? getPublicProviders() : cached("providers", "/api/public/providers"),
+
+  /**
+   * Headline counts for the marketing strip. Counted from published records,
+   * never hard-coded: a fixed "1,200+" outgrew the database long before the
+   * database was real.
+   */
+  getStats: async (): Promise<PublicStats> =>
+    isServer ? getPublicStats() : cached("stats", "/api/public/stats"),
 
   /**
    * Eligibility matching.

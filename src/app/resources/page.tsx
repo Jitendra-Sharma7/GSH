@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, FileText, HelpCircle, ArrowRight, Clock, CalendarDays } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, ArrowRight, Clock, CalendarDays, Download } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
-import { guides, guideCategories, faqs } from "@/lib/data/content";
+import { getPublicFaqs, getPublicResources } from "@/lib/data/public";
+import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Scholarship Guides & Resources",
@@ -10,9 +11,12 @@ export const metadata: Metadata = {
     "Step-by-step guides on finding scholarships, writing statements of purpose, recommendation letters, interviews, language tests, and student visa requirements.",
 };
 
-export default function ResourcesPage() {
-  const faqCount = faqs.length;
-  const guideCount = guides.length;
+export default async function ResourcesPage() {
+  const [resources, faqs] = await Promise.all([getPublicResources(), getPublicFaqs()]);
+
+  const articles = resources.filter((r) => r.sections.length > 0);
+  const downloads = resources.filter((r) => r.sections.length === 0 && (r.url || r.fileUrl));
+  const categories = new Set(articles.map((a) => a.category).filter((c): c is string => Boolean(c)));
 
   return (
     <div className="bg-gray-50/50 min-h-screen py-12">
@@ -33,7 +37,7 @@ export default function ResourcesPage() {
 
         {/* Real counts, linked to real destinations */}
         <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Link
+          <a
             href="#guides"
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
@@ -42,9 +46,10 @@ export default function ResourcesPage() {
             </div>
             <h2 className="text-base font-bold text-gray-900">Application Guides</h2>
             <p className="mt-1 text-xs text-gray-500">
-              {guideCount} in-depth guides across {guideCategories.length} topics
+              {articles.length} in-depth guide{articles.length === 1 ? "" : "s"} across {categories.size}{" "}
+              topic{categories.size === 1 ? "" : "s"}
             </p>
-          </Link>
+          </a>
 
           <Link
             href="/faq"
@@ -55,7 +60,8 @@ export default function ResourcesPage() {
             </div>
             <h2 className="text-base font-bold text-gray-900">Frequently Asked Questions</h2>
             <p className="mt-1 text-xs text-gray-500">
-              {faqCount} answered questions on eligibility, verification, and privacy
+              {faqs.length} answered question{faqs.length === 1 ? "" : "s"} on eligibility,
+              verification, and privacy
             </p>
           </Link>
 
@@ -74,38 +80,87 @@ export default function ResourcesPage() {
         {/* Guides */}
         <section id="guides" className="scroll-mt-24">
           <h2 className="mb-6 text-xl font-bold text-gray-900">Guides &amp; Articles</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {guides.map((guide) => (
-              <Link
-                key={guide.slug}
-                href={`/resources/${guide.slug}`}
-                className="group flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:border-primary-300 hover:shadow-md"
-              >
-                <div className="min-w-0">
-                  <span className="text-xs font-semibold text-primary-600">{guide.category}</span>
-                  <h3 className="mt-1 text-sm font-bold text-gray-900 group-hover:text-primary-700">
-                    {guide.title}
-                  </h3>
-                  <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-600">
-                    {guide.excerpt}
-                  </p>
-                  <div className="mt-2 flex items-center gap-3 text-[11px] text-gray-500">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {guide.readMinutes} min read
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarDays className="h-3 w-3" />
-                      Updated {guide.updated}
-                    </span>
+          {articles.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
+              No guides have been published yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {articles.map((guide) => (
+                <Link
+                  key={guide.slug}
+                  href={`/resources/${guide.slug}`}
+                  className="group flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:border-primary-300 hover:shadow-md"
+                >
+                  <div className="min-w-0">
+                    {guide.category && (
+                      <span className="text-xs font-semibold text-primary-600">{guide.category}</span>
+                    )}
+                    <h3 className="mt-1 text-sm font-bold text-gray-900 group-hover:text-primary-700">
+                      {guide.title}
+                    </h3>
+                    {guide.excerpt && (
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-600">
+                        {guide.excerpt}
+                      </p>
+                    )}
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-gray-500">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {guide.readMinutes} min read
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3" />
+                        Updated {formatDate(guide.updated)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-primary-600" />
-              </Link>
-            ))}
-          </div>
+                  <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-primary-600" />
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
+
+        {/* Downloadable resources, when an editor has published any */}
+        {downloads.length > 0 && (
+          <section className="mt-12">
+            <h2 className="mb-6 text-xl font-bold text-gray-900">Downloads &amp; External Tools</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {downloads.map((item) => {
+                const href = item.fileUrl ?? item.url;
+                if (!href) return null;
+                const external = Boolean(item.url);
+                return (
+                  <a
+                    key={item.slug}
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="group flex items-start justify-between gap-3 rounded-xl border border-gray-200 bg-white p-5 shadow-xs transition-all hover:border-primary-300 hover:shadow-md"
+                  >
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-gray-900 group-hover:text-primary-700">
+                        {item.title}
+                      </h3>
+                      {item.excerpt && (
+                        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-600">
+                          {item.excerpt}
+                        </p>
+                      )}
+                      <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600">
+                        <Download className="h-3 w-3" />
+                        {item.fileUrl ? "Download" : "Open"}
+                        {external ? " (external)" : ""}
+                      </p>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </Container>
     </div>
   );
 }
+

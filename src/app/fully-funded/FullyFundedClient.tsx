@@ -58,7 +58,7 @@ export default function FullyFundedClient({
             href="/finder"
             className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
           >
-            Check your eligibility with AI Matcher &rarr;
+            Check your eligibility with the Matcher &rarr;
           </Link>
         </div>
 

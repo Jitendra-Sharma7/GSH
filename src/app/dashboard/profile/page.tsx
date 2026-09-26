@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { User, CheckCircle2, Circle, Save, ArrowLeft } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { useStore } from "@/lib/store/useStore";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockFields } from "@/lib/data/mock-fields";
+import { api } from "@/lib/data/store";
+import type { PublicCountry, PublicField } from "@/lib/data/public";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 
 const DEGREE_LEVELS = [
@@ -70,6 +70,23 @@ export default function ProfilePage() {
     if (user) setForm(toForm(user));
   }
 
+  // Options come from the published records, so the profile form cannot offer a
+  // country or field that no longer exists on the site.
+  const [countries, setCountries] = useState<PublicCountry[]>([]);
+  const [fields, setFields] = useState<PublicField[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([api.getCountries(), api.getFields()]).then(([c, f]) => {
+      if (!active) return;
+      setCountries(c);
+      setFields(f);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (!isAuthenticated || !user) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-gray-50/50 py-12">
@@ -123,7 +140,7 @@ export default function ProfilePage() {
     router.push("/dashboard");
   };
 
-  const selectedCountries = mockCountries.filter((c) =>
+  const selectedCountries = countries.filter((c) =>
     user.targetCountries.includes(c.id)
   );
 
@@ -265,7 +282,7 @@ export default function ProfilePage() {
                   className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1"
                 >
                   <option value="">Select a field</option>
-                  {mockFields.map((f) => (
+                  {fields.map((f) => (
                     <option key={f.id} value={f.name}>
                       {f.name}
                     </option>
@@ -306,7 +323,7 @@ export default function ProfilePage() {
                   className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1"
                 >
                   <option value="">Select a country</option>
-                  {mockCountries.map((c) => (
+                  {countries.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>

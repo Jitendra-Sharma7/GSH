@@ -13,7 +13,7 @@ export interface CountryData {
   visaInfo: string;
 }
 
-export const mockCountries: CountryData[] = [
+export const seedCountries: CountryData[] = [
   {
     id: "de",
     name: "Germany",

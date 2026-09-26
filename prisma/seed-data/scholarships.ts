@@ -1,6 +1,6 @@
 
 
-import { mockUniversities } from "./mock-universities";
+import { seedUniversities } from "./universities";
 
 export interface ScholarshipData {
   id: string;
@@ -44,7 +44,8 @@ const nextThreeMonths = new Date(2026, 11, 15).toISOString(); // Dec 15, 2026
 const nextFourMonths = new Date(2027, 0, 31).toISOString(); // Jan 31, 2027
 const pastMonth = new Date(2026, 7, 31).toISOString(); // Aug 31, 2026
 
-export const mockScholarships: ScholarshipData[] = [
+/** The hand-written records; `seedScholarships` below extends these. */
+export const handwrittenScholarships: ScholarshipData[] = [
   {
     id: "sch-001",
     title: "Chevening Scholarships 2027/28",
@@ -515,7 +516,7 @@ export const mockScholarships: ScholarshipData[] = [
 // I'll clone and mutate existing ones to reach the 50 count requirement efficiently
 const generateMoreScholarships = (): ScholarshipData[] => {
   const generated: ScholarshipData[] = [];
-  const base = [...mockScholarships];
+  const base = [...handwrittenScholarships];
   let idCounter = 16;
 
   const csTitles = ["Women in Tech Scholarship", "Future AI Leaders Grant", "Google Anita Borg Scholarship", "DeepMind Scholarship", "Masters in Computer Science Excellence Award"];
@@ -553,11 +554,11 @@ const generateMoreScholarships = (): ScholarshipData[] => {
 
     generated.push({
       id: `sch-${String(idCounter++).padStart(3, '0')}`,
-      title: `${title} at ${mockUniversities.find(u => u.id === combo.universityId)?.name || 'University'}`,
+      title: `${title} at ${seedUniversities.find(u => u.id === combo.universityId)?.name || 'University'}`,
       providerId: combo.providerId,
       universityId: combo.universityId,
       countryId: combo.countryId,
-      description: `This is a distinguished scholarship offered for outstanding international students applying to ${mockUniversities.find(u => u.id === combo.universityId)?.name}. It is designated for students who have demonstrated exceptional academic achievement in ${fields[0]}.`,
+      description: `This is a distinguished scholarship offered for outstanding international students applying to ${seedUniversities.find(u => u.id === combo.universityId)?.name}. It is designated for students who have demonstrated exceptional academic achievement in ${fields[0]}.`,
       degreeLevels: i % 2 === 0 ? ["Master's"] : ["Undergraduate"],
       fields: fields,
       eligibleCountries: ["All"],
@@ -589,4 +590,4 @@ const generateMoreScholarships = (): ScholarshipData[] => {
   return [...base, ...generated];
 };
 
-export const databaseScholarships = generateMoreScholarships();
+export const seedScholarships = generateMoreScholarships();

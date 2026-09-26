@@ -5,6 +5,7 @@ import {
   getPublicFields,
   getPublicProviders,
   getPublicScholarshipById,
+  getPublicStats,
   getPublicUniversities,
 } from "@/lib/data/public";
 import { getSettingNumber } from "@/lib/settings";
@@ -30,6 +31,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ resource: s
 
     case "providers":
       return NextResponse.json(await getPublicProviders(), { headers: cache });
+
+    case "stats":
+      return NextResponse.json(await getPublicStats(), { headers: cache });
 
     case "scholarship": {
       const id = new URL(request.url).searchParams.get("id");

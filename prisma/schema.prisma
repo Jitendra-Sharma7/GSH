@@ -599,6 +599,9 @@ model Resource {
   title         String
   slug          String        @unique
   description   String?
+  // Long-form body for article-style resources (`## Heading` sections). Rows
+  // that only point at an external document or download leave it empty.
+  content       String        @default("")
   type          ResourceType  @default(GUIDE)
   url           String?
   fileUrl       String?

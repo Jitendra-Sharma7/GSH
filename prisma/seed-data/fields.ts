@@ -10,7 +10,7 @@ export interface FieldData {
   avgSalary: string;
 }
 
-export const mockFields: FieldData[] = [
+export const seedFields: FieldData[] = [
   {
     id: "cs",
     name: "Computer Science",

@@ -15,12 +15,12 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { mockCountries } from "../src/lib/data/mock-countries";
-import { mockFields } from "../src/lib/data/mock-fields";
-import { mockUniversities } from "../src/lib/data/mock-universities";
-import { mockProviders } from "../src/lib/data/mock-providers";
-import { databaseScholarships } from "../src/lib/data/mock-scholarships";
-import { guides, posts, faqs } from "../src/lib/data/content";
+import { seedCountries } from "./seed-data/countries";
+import { seedFields } from "./seed-data/fields";
+import { seedUniversities } from "./seed-data/universities";
+import { seedProviders } from "./seed-data/providers";
+import { seedScholarships } from "./seed-data/scholarships";
+import { guides, posts, faqs } from "./seed-data/content";
 import {
   toPrismaDeadlineStatus,
   toPrismaFundingType,
@@ -79,9 +79,9 @@ function sectionsToMarkdown(
     .join("\n\n");
 }
 
-async function seedCountries() {
+async function persistCountries() {
   let n = 0;
-  for (const c of mockCountries) {
+  for (const c of seedCountries) {
     const slug = await uniqueSlug(
       async (s) => (await prisma.country.findUnique({ where: { slug: s } })) !== null,
       slugify(c.name)
@@ -129,9 +129,9 @@ async function seedCountries() {
   return n;
 }
 
-async function seedFields() {
+async function persistFields() {
   let n = 0;
-  for (const f of mockFields) {
+  for (const f of seedFields) {
     const slug = await uniqueSlug(
       async (s) => (await prisma.field.findUnique({ where: { slug: s } })) !== null,
       f.slug || slugify(f.name)
@@ -169,9 +169,9 @@ async function seedFields() {
   return n;
 }
 
-async function seedProviders() {
+async function persistProviders() {
   let n = 0;
-  for (const p of mockProviders) {
+  for (const p of seedProviders) {
     await prisma.provider.upsert({
       where: { id: p.id },
       update: {
@@ -202,10 +202,10 @@ async function seedProviders() {
   return n;
 }
 
-async function seedUniversities(countryByName: Map<string, string>) {
+async function persistUniversities(countryByName: Map<string, string>) {
   let n = 0;
   let unresolved = 0;
-  for (const u of mockUniversities) {
+  for (const u of seedUniversities) {
     const countryId = countryByName.get(u.country) ?? null;
     if (!countryId) unresolved += 1;
     const slug = await uniqueSlug(
@@ -247,14 +247,14 @@ async function seedUniversities(countryByName: Map<string, string>) {
   return n;
 }
 
-async function seedScholarships(
+async function persistScholarships(
   countryIds: Set<string>,
   universityIds: Set<string>,
   providerIds: Set<string>,
   fieldNamesById: Map<string, string>
 ) {
   let n = 0;
-  for (const s of databaseScholarships) {
+  for (const s of seedScholarships) {
     const countryId = countryIds.has(s.countryId) ? s.countryId : null;
     const universityId = s.universityId && universityIds.has(s.universityId) ? s.universityId : null;
     const providerId = providerIds.has(s.providerId) ? s.providerId : null;
@@ -285,7 +285,12 @@ async function seedScholarships(
       fundingType: toPrismaFundingType(s.fundingType),
       isFullyFunded: s.fundingType === "fully-funded",
       currency: s.currency ?? null,
+      // The source data states a total award and an application fee; dropping
+      // them here left every listing showing "not stated" in the comparison and
+      // detail views.
+      fundingAmount: s.fundingAmount ?? null,
       monthlyStipend: s.livingStipend ?? null,
+      applicationFee: s.applicationFee ?? null,
       tuitionCoverage: Boolean(s.tuitionCoverage),
       accommodationCoverage: Boolean(s.accommodationCoverage),
       travelAllowance: Boolean(s.travelAllowance),
@@ -398,6 +403,30 @@ async function seedEditorial() {
       await prisma.guide.create({ data: { ...data, slug } });
     }
     guide += 1;
+
+    // The same guide is also written as a published Resource row. `/resources`
+    // reads the Resource table, which is what the admin Resources section
+    // edits, so seeding only the Guide table would leave staff edits invisible
+    // on the public site. The public reader de-duplicates by slug, so the Guide
+    // row above never shows up twice.
+    const resourceSlug = desiredSlug(g.slug);
+    const resourceData = {
+      title: g.title,
+      category: g.category,
+      description: g.excerpt ?? null,
+      content: data.content,
+      type: "GUIDE" as const,
+      publishStatus: "PUBLISHED" as const,
+      includeInSitemap: true,
+    };
+    const existingResource = await prisma.resource.findUnique({
+      where: { slug: resourceSlug },
+    });
+    if (existingResource) {
+      await prisma.resource.update({ where: { id: existingResource.id }, data: resourceData });
+    } else {
+      await prisma.resource.create({ data: { ...resourceData, slug: resourceSlug } });
+    }
   }
 
   // FAQs are matched on question text so re-running does not duplicate them.
@@ -498,9 +527,9 @@ async function seedAdmin() {
 async function main() {
   console.log("Seeding Global Scholarship Hub...");
 
-  await seedCountries();
-  await seedFields();
-  await seedProviders();
+  await persistCountries();
+  await persistFields();
+  await persistProviders();
 
   // Build lookup maps from the database so seeding only links real rows.
   const countries = await prisma.country.findMany({ select: { id: true, name: true } });
@@ -516,8 +545,8 @@ async function main() {
   const fields = await prisma.field.findMany({ select: { id: true, name: true } });
   const fieldNamesById = new Map(fields.map((f) => [f.id, f.name]));
 
-  await seedUniversities(countryByName);
-  await seedScholarships(countryIds, universityIds, providerIds, fieldNamesById);
+  await persistUniversities(countryByName);
+  await persistScholarships(countryIds, universityIds, providerIds, fieldNamesById);
   await seedEditorial();
   await seedSettings();
   await seedAdmin();
@@ -530,6 +559,7 @@ async function main() {
     providers: await prisma.provider.count(),
     blogPosts: await prisma.blogPost.count(),
     guides: await prisma.guide.count(),
+    resources: await prisma.resource.count(),
     faqs: await prisma.fAQ.count(),
     users: await prisma.user.count(),
   };

@@ -77,7 +77,7 @@ Lines to clean:
 ## ⚡ Quick Commands (when classifier available)
 ```bash
 # Remove common decorative icons
-cd "D:/CODES/Global Scholarships/scholaratlas"
+cd "D:/CODES/Global Scholarships"
 find src/app -name "*.tsx" -exec sed -i 's/<Sparkles className="[^"]*" \/>//g' {} \;
 find src/app -name "*.tsx" -exec sed -i 's/<ChevronRight className="[^"]*" \/>//g' {} \;
 find src/app -name "*.tsx" -exec sed -i 's/<Award className="[^"]*" \/>//g' {} \;

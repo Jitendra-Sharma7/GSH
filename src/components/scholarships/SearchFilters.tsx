@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Filter, RotateCcw } from "lucide-react";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockFields } from "@/lib/data/mock-fields";
+import { api } from "@/lib/data/store";
+import type { PublicCountry, PublicField } from "@/lib/data/public";
 
 interface FilterState {
   query: string;
@@ -25,6 +25,27 @@ export function SearchFilters({
   onChange,
   onReset
 }: SearchFiltersProps) {
+  // The options come from the published records, so a country an editor
+  // unpublishes disappears from the filter instead of returning an empty
+  // result set. Loaded after mount because this is a client component.
+  const [countries, setCountries] = useState<PublicCountry[]>([]);
+  const [fields, setFields] = useState<PublicField[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([api.getCountries(), api.getFields()]).then(([c, f]) => {
+      if (!active) return;
+      setCountries(c);
+      setFields(f);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const germany = countries.find((c) => c.id === "de");
+  const computerScience = fields.find((f) => f.id === "cs");
+
   const degrees = [
     { value: "", label: "All Degree Levels" },
     { value: "Undergraduate", label: "Undergraduate / Bachelor's" },
@@ -100,7 +121,7 @@ export function SearchFilters({
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
         >
           <option value="">All Countries</option>
-          {mockCountries.map((c) => (
+          {countries.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -119,7 +140,7 @@ export function SearchFilters({
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
         >
           <option value="">All Fields</option>
-          {mockFields.map((f) => (
+          {fields.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
             </option>
@@ -171,31 +192,34 @@ export function SearchFilters({
           >
             Master&apos;s
           </button>
-          <button
-            onClick={() => handleSelect("country", "de")}
-            className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-              filters.country === "de"
-                ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
-                : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <CountryFlagWithName
-              code={mockCountries.find((c) => c.id === "de")?.code}
-              emoji={mockCountries.find((c) => c.id === "de")?.flag}
-              name="Germany"
-              size="xs"
-            />
-          </button>
-          <button
-            onClick={() => handleSelect("field", "Computer Science")}
-            className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-              filters.field === "Computer Science"
-                ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
-                : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            Computer Science
-          </button>
+          {germany && (
+            <button
+              onClick={() => handleSelect("country", germany.id)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                filters.country === germany.id
+                  ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <CountryFlagWithName
+                code={germany.code}
+                name={germany.name}
+                size="xs"
+              />
+            </button>
+          )}
+          {computerScience && (
+            <button
+              onClick={() => handleSelect("field", computerScience.id)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                filters.field === computerScience.id
+                  ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Computer Science
+            </button>
+          )}
         </div>
       </div>
     </div>

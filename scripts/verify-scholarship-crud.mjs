@@ -338,6 +338,7 @@ async function main() {
 
   console.log(`\nCreated record id: ${state.id}`);
   console.log(`Slug: ${state.slug}`);
+  console.log(`Run "npm run clean:test-records" to remove it.`);
   console.log(`\n${failures} failure(s).`);
   process.exit(failures > 0 ? 1 : 0);
 }

@@ -17,7 +17,7 @@ export interface UniversityData {
   internationalStudentPercent: number;
 }
 
-export const mockUniversities: UniversityData[] = [
+export const seedUniversities: UniversityData[] = [
   {
     id: "harvard",
     name: "Harvard University",
