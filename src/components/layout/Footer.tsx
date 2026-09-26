@@ -3,8 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { Container, Grid } from "@/components/layout/Layout";
+import { SITE_BRANDING_FALLBACK, type SiteBranding } from "@/lib/site-branding";
 
-export function Footer() {
+export function Footer({ branding = SITE_BRANDING_FALLBACK }: { branding?: SiteBranding }) {
   return (
     <footer className="bg-gray-900 text-gray-300">
       <Container>
@@ -18,7 +19,7 @@ export function Footer() {
                 <span className="text-xl font-bold text-white">Global Scholarship Hub</span>
               </Link>
               <p className="mt-4 max-w-sm text-sm text-gray-400">
-                Helping students worldwide discover, compare, and apply for scholarships, grants, fellowships, and financial-aid opportunities.
+                {branding.tagline}
               </p>
             </div>
 
@@ -97,23 +98,17 @@ export function Footer() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  onClick={() =>
-                    window.dispatchEvent(new CustomEvent("gs:open-consent"))
-                  }
-                  className="mt-3 text-sm text-gray-400 underline-offset-2 transition-colors hover:text-white hover:underline"
-                >
-                  Manage cookie consent
-                </button>
               </div>
               <div>
                 <h4 className="mb-4 text-sm font-semibold text-white">Contact</h4>
                 <ul className="space-y-3">
                   <li>
-                    <a href="mailto:hello@scholaratlas.org" className="text-sm text-gray-400 hover:text-white">
-                      hello@scholaratlas.org
-                    </a>
+                <a
+                  href={`mailto:${branding.contactEmail}`}
+                  className="break-all text-sm text-gray-400 hover:text-white"
+                >
+                  {branding.contactEmail}
+                </a>
                   </li>
                   <li>
                     <span className="text-sm text-gray-400">Global (Online)</span>

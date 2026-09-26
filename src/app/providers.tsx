@@ -1,12 +1,20 @@
+"use client";
+
 import React from "react";
+import { usePathname } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import { CookieConsent } from "@/components/consent/CookieConsent";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // The consent banner is public-site chrome: it would otherwise cover the staff
+  // panel on first load, and admin pages carry no visitor-facing tracking.
+  const pathname = usePathname();
+  const isStaffArea = pathname === "/admin" || pathname.startsWith("/admin/");
+
   return (
     <>
       {children}
-      <CookieConsent />
+      {isStaffArea ? null : <CookieConsent />}
       <Toaster
         position="bottom-right"
         toastOptions={{

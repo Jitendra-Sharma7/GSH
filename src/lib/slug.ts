@@ -57,25 +57,35 @@ export async function generateUniqueSlug(
   return `${base}-${Date.now()}`;
 }
 
-/** Public path for a given entity, used to build redirects. */
+/**
+ * Public path for a given entity, used to build redirects.
+ *
+ * Only scholarships, blog posts and resources have a public detail page. A
+ * country, university or field is reached through a list filtered by id
+ * (`/scholarships?country=…`), so there is no slug URL to preserve and none is
+ * invented here.
+ */
 export function publicPathFor(
   model: "scholarship" | "university" | "country" | "field" | "blogPost" | "resource",
   slug: string
-): string {
+): string | null {
   switch (model) {
     case "scholarship":
       return `/scholarships/${slug}`;
-    case "university":
-      return `/universities/${slug}`;
-    case "country":
-      return `/countries/${slug}`;
-    case "field":
-      return `/fields/${slug}`;
     case "blogPost":
       return `/blog/${slug}`;
     case "resource":
       return `/resources/${slug}`;
+    default:
+      return null;
   }
+}
+
+/** True when the entity is addressable by slug on the public site. */
+export function hasPublicSlugPage(
+  model: "scholarship" | "university" | "country" | "field" | "blogPost" | "resource"
+): boolean {
+  return publicPathFor(model, "x") !== null;
 }
 
 /**
@@ -92,12 +102,14 @@ export async function changeSlugWithRedirect(
   if (!oldSlug || !newSlug || oldSlug === newSlug) return;
 
   const fromPath = publicPathFor(model, oldSlug);
-  if (!fromPath) return;
+  const toPath = publicPathFor(model, newSlug);
+  // Nothing to preserve for a model with no public slug URL.
+  if (!fromPath || !toPath) return;
 
   await prisma.redirect.upsert({
     where: { fromPath },
-    update: { toPath: publicPathFor(model, newSlug), isPermanent: true },
-    create: { fromPath, toPath: publicPathFor(model, newSlug), isPermanent: true },
+    update: { toPath, isPermanent: true },
+    create: { fromPath, toPath, isPermanent: true },
   });
 
   // The resolver caches the table; a fresh redirect has to be visible now, not

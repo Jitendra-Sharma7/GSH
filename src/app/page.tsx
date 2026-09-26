@@ -519,7 +519,7 @@ export default function HomePage() {
                 Zero fake listings. Zero unverified claims.
               </h2>
               <p className="mt-3 text-sm text-gray-700 leading-relaxed">
-                Unlike scrapers that index outdated or fabricated financial aid entries, every listing on ScholarAtlas is attributed directly to its source with official URLs and verified last-checked timestamps. We clearly distinguish algorithmic match recommendations from formal provider eligibility determinations.
+                Unlike scrapers that index outdated or fabricated financial aid entries, every listing on Global Scholarship Hub is attributed directly to its source with official URLs and verified last-checked timestamps. We clearly distinguish algorithmic match recommendations from formal provider eligibility determinations.
               </p>
               <div className="mt-6 flex flex-wrap gap-4 text-xs font-medium text-gray-700">
                 <span className="flex items-center gap-1.5">

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Merriweather } from "next/font/google";
 import { Providers } from "./providers";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
+import { SiteChrome } from "@/components/layout/SiteChrome";
+import { getSiteBranding } from "@/lib/site-branding";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -65,13 +65,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ScholarAtlas - Find Scholarships. Fund Your Future.",
+        alt: "Global Scholarship Hub - Find Scholarships. Fund Your Future.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ScholarAtlas | Global Scholarship Discovery Platform",
+    title: "Global Scholarship Hub | Global Scholarship Discovery Platform",
     description:
       "Discover, filter, compare, save, and apply for scholarships from around the world.",
     images: ["/og-image.png"],
@@ -89,11 +89,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Read here rather than hardcoding: the contact details in the footer are a
+  // support address that changes, and a stale one is worse than none.
+  const branding = await getSiteBranding();
+
   return (
     <html
       lang="en"
@@ -102,11 +106,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased bg-white text-gray-900">
         <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          <SiteChrome branding={branding}>{children}</SiteChrome>
         </Providers>
       </body>
     </html>

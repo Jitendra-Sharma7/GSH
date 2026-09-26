@@ -120,7 +120,7 @@ export function SearchFilters({
         >
           <option value="">All Fields</option>
           {mockFields.map((f) => (
-            <option key={f.id} value={f.name}>
+            <option key={f.id} value={f.id}>
               {f.name}
             </option>
           ))}

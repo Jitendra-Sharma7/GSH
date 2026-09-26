@@ -342,7 +342,9 @@ export async function getRecentContent(): Promise<{
     users: users.map((u) => ({
       id: u.id,
       title: u.name || u.email,
-      href: `/admin/users/${u.id}`,
+      // There is no separate user detail page; the record is edited from the
+      // users list, so link there rather than to a URL that would 404.
+      href: `/admin/users?q=${encodeURIComponent(u.email)}`,
       meta: u.role.toLowerCase().replace("_", " "),
       updatedAt: u.createdAt.toISOString(),
     })),

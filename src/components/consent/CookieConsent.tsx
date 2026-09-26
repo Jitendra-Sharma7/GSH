@@ -47,8 +47,12 @@ export function CookieConsent() {
     }
   }
 
-  // First visit (no stored decision) opens the banner. After a decision is
-  // recorded the dialog stays closed until the visitor reopens preferences.
+  /**
+   * First visit opens the banner. Once a decision is recorded the dialog stays
+   * closed: the public site carries no standing "cookie settings" control, and
+   * withdrawal happens from the Cookie Policy page instead, which raises
+   * `gs:open-consent` to reopen this same dialog in preferences mode.
+   */
   const open = !dismissed && (stored === null || mode === "preferences");
 
   const save = useCallback((next: ConsentDecision) => {
@@ -66,7 +70,7 @@ export function CookieConsent() {
     save({ functional: false, analytics: false, marketing: false });
   }, [save]);
 
-  /** Reopen the dialog. Exposed to the footer via a custom event. */
+  /** Reopen the dialog from the Cookie Policy page, via a custom event. */
   useEffect(() => {
     const openDialog = () => {
       setMode("preferences");
@@ -84,22 +88,6 @@ export function CookieConsent() {
 
   return (
     <>
-      {/* Persistent "manage" affordance once a decision exists */}
-      {!open && (
-        <button
-          type="button"
-          onClick={() => {
-            setMode("preferences");
-            setDismissed(false);
-          }}
-          className="fixed bottom-4 left-4 z-40 hidden items-center gap-1.5 rounded-full border border-gray-200 bg-white/95 px-3.5 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 sm:inline-flex"
-          aria-label="Manage cookie preferences"
-        >
-          <Cookie className="h-3.5 w-3.5" />
-          Cookie settings
-        </button>
-      )}
-
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-6"

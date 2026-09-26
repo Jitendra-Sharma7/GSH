@@ -537,6 +537,8 @@ export function SlugInput({
   error,
   hint,
   disabled,
+  prefix = "/scholarships/",
+  label = "URL slug",
 }: {
   name: string;
   defaultValue?: string | null;
@@ -545,6 +547,9 @@ export function SlugInput({
   error?: string;
   hint?: ReactNode;
   disabled?: boolean;
+  /** Public path the slug appears under, shown as a read-only prefix. */
+  prefix?: string;
+  label?: string;
 }) {
   const id = useId();
   const initial = defaultValue ?? "";
@@ -554,11 +559,11 @@ export function SlugInput({
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-xs font-semibold text-slate-700">
-        URL slug
+        {label}
       </label>
       <div className="flex items-stretch gap-2">
         <span className="hidden shrink-0 items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2.5 font-mono text-[13px] text-slate-500 sm:flex">
-          /scholarships/
+          {prefix}
         </span>
         <input
           id={id}

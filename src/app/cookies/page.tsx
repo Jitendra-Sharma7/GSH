@@ -134,10 +134,10 @@ export default function CookiePolicyPage() {
               switched off until you actively opt in.
             </p>
             <p className="mt-3 text-sm text-gray-700 leading-relaxed">
-              Withdrawing consent is as easy as granting it. You can revisit and change your choice
-              at any time using the control below, or via the &quot;Cookie settings&quot; button
-              available on every page. Note that strictly necessary technologies cannot be switched
-              off, because the site cannot function without them.
+              Withdrawing consent is as easy as granting it. This page is the permanent way back: use
+              the control below to revisit and change your choice at any time, and your selection
+              replaces the one recorded earlier. Note that strictly necessary technologies cannot be
+              switched off, because the site cannot function without them.
             </p>
             <div className="mt-5">
               <CookieManageButton />

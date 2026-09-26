@@ -184,7 +184,7 @@ export default async function AdminDashboardPage() {
           ) : null}
           {stats.users.suspended > 0 ? (
             <Link
-              href="/admin/users?status=suspended"
+              href="/admin/users?suspended=yes"
               className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 transition-colors hover:border-red-300"
             >
               <Users className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
