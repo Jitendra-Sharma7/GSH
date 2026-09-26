@@ -6,13 +6,13 @@ import { Calendar as CalendarIcon, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import type { PublicScholarship } from "@/lib/data/public";
 import { mockCountries } from "@/lib/data/mock-countries";
 
 import { useNow, daysUntilFrom } from "@/lib/useNow";
 
 export default function DeadlinesPage() {
-  const [scholarships, setScholarships] = useState<ScholarshipData[]>([]);
+  const [scholarships, setScholarships] = useState<PublicScholarship[]>([]);
   const [filter, setFilter] = useState<"all" | "urgent" | "month" | "upcoming">("all");
   const [loading, setLoading] = useState(true);
   const now = useNow();

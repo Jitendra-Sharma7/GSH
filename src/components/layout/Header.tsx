@@ -68,7 +68,7 @@ export function Header() {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
               return (
                 <Link
-                  key={item.href}
+                  key={item.label}
                   href={item.href}
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -142,7 +142,7 @@ export function Header() {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                 return (
                   <Link
-                    key={item.href}
+                    key={item.label}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={cn(

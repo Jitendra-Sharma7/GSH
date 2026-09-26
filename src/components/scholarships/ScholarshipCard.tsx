@@ -3,12 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { Bookmark, Layers } from "lucide-react";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { CountryFlag } from "@/components/ui/CountryFlag";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockProviders } from "@/lib/data/mock-providers";
-import { mockUniversities } from "@/lib/data/mock-universities";
 import { useStore } from "@/lib/store/useStore";
+import type { PublicScholarship } from "@/lib/data/public";
 import {
   formatDate,
   getDeadlineBadgeColor,
@@ -21,7 +18,7 @@ import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface ScholarshipCardProps {
-  scholarship: ScholarshipData;
+  scholarship: PublicScholarship;
   matchScore?: number;
   matchReasons?: string[];
 }
@@ -35,11 +32,8 @@ export function ScholarshipCard({
   const saved = isSaved(scholarship.id);
   const isCompared = compareIds.includes(scholarship.id);
 
-  const country = mockCountries.find((c) => c.id === scholarship.countryId);
-  const provider = mockProviders.find((p) => p.id === scholarship.providerId);
-  const university = scholarship.universityId
-    ? mockUniversities.find((u) => u.id === scholarship.universityId)
-    : null;
+  // Country, provider and university names travel with the record, so the card
+  // needs no client-side lookup table.
 
   // Null until mounted, so the deadline badge renders identically on the server
   // pass and after hydration. Urgency is derived from the same `daysLeft` value
@@ -109,7 +103,7 @@ export function ScholarshipCard({
             {/* Verification Badge */}
             <span
               className="inline-flex items-center gap-1 rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-              title={`Source: ${provider?.name || 'Official Provider'} (Verified ${formatDate(scholarship.lastVerifiedAt)})`}
+              title={`Source: ${scholarship.providerName || "Official Provider"} (Verified ${formatDate(scholarship.lastVerifiedAt)})`}
             >
               <span className="text-[10px]">{verification.icon}</span>
               <span>{verification.label}</span>
@@ -140,15 +134,19 @@ export function ScholarshipCard({
 
         {/* Provider & University */}
         <p className="mt-1 text-sm text-gray-600">
-          {provider?.name || "Official Organization"}
-          {university && ` • ${university.name}`}
+          {scholarship.providerName || "Official Organization"}
+          {scholarship.universityName && ` • ${scholarship.universityName}`}
         </p>
 
         {/* Key Info Pills */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-600 sm:grid-cols-3">
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2">
-            <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
-            <span className="truncate">{country?.name || "Global"}</span>
+            <CountryFlag
+              code={scholarship.countryCode}
+              name={scholarship.countryName ?? undefined}
+              size="xs"
+            />
+            <span className="truncate">{scholarship.countryName || "Global"}</span>
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2">

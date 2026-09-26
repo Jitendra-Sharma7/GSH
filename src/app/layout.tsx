@@ -18,7 +18,19 @@ const merriweather = Merriweather({
   display: "swap",
 });
 
+/**
+ * Absolute origin for canonical URLs and OpenGraph/Twitter image resolution.
+ * Without it Next.js falls back to http://localhost:3000, which makes social
+ * cards resolve to the wrong host in production.
+ */
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://globalscholarshiphub.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "Global Scholarship Hub | Global Scholarship Discovery Platform",
     template: "%s | Global Scholarship Hub",
@@ -43,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://globalscholarshiphub.org",
+    url: siteUrl,
     siteName: "Global Scholarship Hub",
     title: "Global Scholarship Hub | Global Scholarship Discovery Platform",
     description:
@@ -83,7 +95,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${merriweather.variable}`}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${merriweather.variable}`}
+    >
       <body className="font-sans antialiased bg-white text-gray-900">
         <Providers>
           <div className="flex min-h-screen flex-col">

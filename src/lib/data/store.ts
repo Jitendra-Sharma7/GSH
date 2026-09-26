@@ -1,8 +1,30 @@
-import { mockCountries, CountryData } from './mock-countries';
-import { mockFields, FieldData } from './mock-fields';
-import { mockUniversities, UniversityData } from './mock-universities';
-import { mockProviders, ProviderData } from './mock-providers';
-import { databaseScholarships, ScholarshipData } from './mock-scholarships';
+import type { PublicScholarship, PublicCountry, PublicField, PublicUniversity, PublicProvider } from "./public";
+import {
+  getPublicScholarships,
+  getPublicScholarshipById,
+  getPublicCountries,
+  getPublicFields,
+  getPublicUniversities,
+  getPublicProviders,
+} from "./public";
+
+/**
+ * Public data access shared by server and client components.
+ *
+ * The interface is unchanged from the original in-memory store, so the pages
+ * that call `api.*` needed no restructuring - only the data source moved from
+ * hard-coded arrays to the database.
+ *
+ * Server renders call the `lib/data/public` functions directly. The browser
+ * still goes through the read-only /api/public routes, because that is the only
+ * way to ship data to a client component. The split matters: a server render
+ * that fetched its own API route would add a network round trip per list, and
+ * worse, a revalidation of a page that self-fetches makes the render trigger a
+ * request that re-enters the server, which stalls the dev server and multiplies
+ * work in production.
+ */
+
+const isServer = typeof window === "undefined";
 
 export interface FilterOptions {
   query?: string;
@@ -13,6 +35,7 @@ export interface FilterOptions {
   status?: string;
   page?: number;
   limit?: number;
+  sort?: "deadline" | "newest" | "title" | "featured";
 }
 
 export interface PaginatedResult<T> {
@@ -38,142 +61,136 @@ export interface MatchProfile {
 }
 
 export interface MatchResult {
-  scholarship: ScholarshipData;
+  scholarship: PublicScholarship;
   score: number;
   reasons: string[];
   missing?: string[];
   warnings?: string[];
 }
 
-// Data fetching layer to simulate a database or API
+async function getJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Small in-memory cache so several components can read the same list once. */
+const cache = new Map<string, { at: number; value: unknown }>();
+const CACHE_TTL_MS = 60_000;
+
+async function cached<T>(key: string, url: string): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as T;
+  const value = await getJSON<T>(url);
+  cache.set(key, { at: Date.now(), value });
+  return value;
+}
+
+function toQuery(params: Record<string, string | number | boolean | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === false) continue;
+    sp.set(key, String(value));
+  }
+  const qs = sp.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export const api = {
   // --- Scholarships ---
-  getScholarships: async (filters: FilterOptions): Promise<PaginatedResult<ScholarshipData>> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    let result = [...databaseScholarships];
-
-    // Apply filters
-    if (filters.query) {
-      const q = filters.query.toLowerCase();
-      result = result.filter(s =>
-        s.title.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.fields.some(f => f.toLowerCase().includes(q))
-      );
+  getScholarships: async (filters: FilterOptions): Promise<PaginatedResult<PublicScholarship>> => {
+    if (isServer) {
+      return getPublicScholarships({ ...filters, limit: filters.limit ?? 12 });
     }
-
-    if (filters.country) {
-      result = result.filter(s => s.countryId === filters.country);
-    }
-
-    if (filters.field) {
-      if (filters.field !== 'all') {
-        result = result.filter(s =>
-          s.fields.includes(filters.field!) ||
-          s.fields.includes("All") ||
-          s.fields.includes("All fields at U of T") ||
-          s.fields.includes("All disciplines offered at Stanford")
-        );
-      }
-    }
-
-    if (filters.degree) {
-      result = result.filter(s => s.degreeLevels.includes(filters.degree!));
-    }
-
-    if (filters.funding) {
-      result = result.filter(s => s.fundingType === filters.funding);
-    }
-
-    if (filters.status) {
-      result = result.filter(s => s.status.toLowerCase() === filters.status!.toLowerCase());
-    } else {
-      // Default to showing Open and Opening Soon
-      result = result.filter(s => s.status === 'Open' || s.status === 'Opening Soon');
-    }
-
-    // Process pagination
-    const page = filters.page || 1;
-    const limit = filters.limit || 12;
-    const total = result.length;
-    const totalPages = Math.ceil(total / limit);
-
-    const paginatedData = result.slice((page - 1) * limit, page * limit);
-
-    return {
-      data: paginatedData,
-      total,
-      page,
-      totalPages,
-      hasMore: page < totalPages
-    };
+    const qs = toQuery({ ...filters, limit: filters.limit ?? 12 });
+    // The result depends on the filter set, so each combination caches on its own.
+    return cached(`sch:${qs}`, `/api/public/scholarships${qs}`);
   },
 
-  getScholarshipById: async (id: string): Promise<ScholarshipData | undefined> => {
-    return databaseScholarships.find(s => s.id === id);
+  getScholarshipById: async (id: string): Promise<PublicScholarship | undefined> => {
+    if (isServer) {
+      // The direct lookup returns `null` for a miss; this API reports `undefined`.
+      return (await getPublicScholarshipById(id)) ?? undefined;
+    }
+    try {
+      return await getJSON<PublicScholarship>(`/api/public/scholarship${toQuery({ id })}`);
+    } catch {
+      return undefined;
+    }
   },
 
   // --- Countries ---
-  getCountries: async (): Promise<CountryData[]> => {
-    return mockCountries.sort((a, b) => a.name.localeCompare(b.name));
-  },
+  getCountries: async (): Promise<PublicCountry[]> =>
+    isServer ? getPublicCountries() : cached("countries", "/api/public/countries"),
 
-  getCountryById: async (id: string): Promise<CountryData | undefined> => {
-    return mockCountries.find(c => c.id === id || c.code.toLowerCase() === id.toLowerCase());
+  getCountryById: async (id: string): Promise<PublicCountry | undefined> => {
+    const countries = await api.getCountries();
+    return countries.find(
+      (c) => c.id === id || c.code.toLowerCase() === id.toLowerCase() || c.slug === id
+    );
   },
 
   // --- Fields ---
-  getFields: async (): Promise<FieldData[]> => {
-    return mockFields.sort((a, b) => a.name.localeCompare(b.name));
-  },
+  getFields: async (): Promise<PublicField[]> =>
+    isServer ? getPublicFields() : cached("fields", "/api/public/fields"),
 
-  getFieldBySlug: async (slug: string): Promise<FieldData | undefined> => {
-    return mockFields.find(f => f.slug === slug || f.id === slug);
+  getFieldBySlug: async (slug: string): Promise<PublicField | undefined> => {
+    const fields = await api.getFields();
+    return fields.find((f) => f.slug === slug || f.id === slug);
   },
 
   // --- Universities ---
-  getUniversities: async (limit?: number): Promise<UniversityData[]> => {
-    const list = mockUniversities.sort((a, b) => a.ranking - b.ranking);
-    return limit ? list.slice(0, limit) : list;
-  },
+  getUniversities: async (limit?: number): Promise<PublicUniversity[]> =>
+    isServer
+      ? getPublicUniversities(limit)
+      : cached(`universities:${limit ?? "all"}`, `/api/public/universities${toQuery({ limit })}`),
 
-  getUniversityById: async (id: string): Promise<UniversityData | undefined> => {
-    return mockUniversities.find(u => u.id === id);
+  getUniversityById: async (id: string): Promise<PublicUniversity | undefined> => {
+    const list = await api.getUniversities();
+    return list.find((u) => u.id === id || u.slug === id);
   },
 
   // --- Providers ---
-  getProviders: async (): Promise<ProviderData[]> => {
-    return mockProviders;
-  },
+  getProviders: async (): Promise<PublicProvider[]> =>
+    isServer ? getPublicProviders() : cached("providers", "/api/public/providers"),
 
-  // --- Matching Engine Algorithm ---
+  /**
+   * Eligibility matching.
+   *
+   * Scores each published scholarship against the profile. Kept deliberately
+   * explainable: every point comes with a reason, a gap, or a warning, so the
+   * UI can show why something did or did not match rather than an opaque score.
+   */
   findMatches: async (userProfile: MatchProfile): Promise<MatchResult[]> => {
-    // A simplified matching algorithm demonstrating the MVP behavior for AI matching
-    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate complex calculation
+    // Pull a broad set, then score locally. Bounded so the page stays quick.
+    const { data } = await api.getScholarships({ limit: 60, sort: "deadline" });
 
-    const activeScholarships = databaseScholarships.filter(s => s.status === 'Open' || s.status === 'Opening Soon');
-
-    const results = activeScholarships.map(scholarship => {
+    const results = data.map((scholarship) => {
       let score = 0;
       const reasons: string[] = [];
       const missing: string[] = [];
       const warnings: string[] = [];
 
-      // 1. Check Degree Level Match (Critical)
-      if (userProfile.degreeLevel && scholarship.degreeLevels.includes(userProfile.degreeLevel)) {
-        score += 35;
-        reasons.push(`Degree level matches (${userProfile.degreeLevel})`);
-      } else if (userProfile.degreeLevel) {
-        warnings.push(`You are looking for ${userProfile.degreeLevel} but this is for ${scholarship.degreeLevels.join(', ')}`);
+      // 1. Degree level (critical)
+      if (userProfile.degreeLevel) {
+        if (scholarship.degreeLevels.includes(userProfile.degreeLevel)) {
+          score += 35;
+          reasons.push(`Degree level matches (${userProfile.degreeLevel})`);
+        } else {
+          warnings.push(
+            `You are looking for ${userProfile.degreeLevel} but this is for ${scholarship.degreeLevels.join(", ") || "other levels"}`
+          );
+        }
       }
 
-      // 2. Check Field Match (Critical)
+      // 2. Field of study (critical)
       if (userProfile.field) {
-        if (scholarship.fields.includes("All") ||
-            scholarship.fields.includes("All fields at U of T") ||
-            scholarship.fields.includes("All disciplines offered at Stanford")) {
+        const openToAll = scholarship.fields.some(
+          (f) => f === "All" || f.toLowerCase().startsWith("all ")
+        );
+        if (openToAll) {
           score += 25;
           reasons.push("Open to all fields of study");
         } else if (scholarship.fields.includes(userProfile.field)) {
@@ -184,16 +201,18 @@ export const api = {
         }
       }
 
-      // 3. Country Preference Match
-      if (userProfile.targetCountries && userProfile.targetCountries.length > 0) {
-        if (userProfile.targetCountries.includes(scholarship.countryId)) {
-          score += 15;
-          reasons.push(`Destination country matches your preference`);
-        }
+      // 3. Destination preference
+      if (
+        userProfile.targetCountries &&
+        userProfile.targetCountries.length > 0 &&
+        scholarship.countryId &&
+        userProfile.targetCountries.includes(scholarship.countryId)
+      ) {
+        score += 15;
+        reasons.push("Destination country matches your preference");
       }
 
-      // 4. GPA Evaluation
-      // The form collects GPA as text, so normalise before comparing numerically.
+      // 4. GPA. The form collects GPA as text, so normalise before comparing.
       const profileGpa =
         typeof userProfile.gpa === "number"
           ? userProfile.gpa
@@ -203,19 +222,22 @@ export const api = {
       if (hasProfileGpa && scholarship.minGpa) {
         if (profileGpa >= scholarship.minGpa) {
           score += 10;
-          reasons.push(`Your GPA (${profileGpa}) meets the requirement (${scholarship.minGpa})`);
+          reasons.push(
+            `Your GPA (${profileGpa}) meets the requirement (${scholarship.minGpa})`
+          );
         } else {
-          warnings.push(`Your GPA (${profileGpa}) is below the requirement (${scholarship.minGpa})`);
-          // Penalize score if critical requirement missed
+          warnings.push(
+            `Your GPA (${profileGpa}) is below the requirement (${scholarship.minGpa})`
+          );
           score -= 20;
         }
       } else if (scholarship.minGpa && !userProfile.gpa) {
         missing.push(`Requires minimum GPA of ${scholarship.minGpa}`);
       }
 
-      // 5. Funding Match
+      // 5. Funding
       if (userProfile.needFullFunding) {
-        if (scholarship.fundingType === "fully-funded") {
+        if (scholarship.isFullyFunded || scholarship.fundingType === "fully-funded") {
           score += 15;
           reasons.push("Provides the full funding you requested");
         } else {
@@ -224,22 +246,18 @@ export const api = {
         }
       }
 
-      // Normalize score 0-100
-      score = Math.max(0, Math.min(100, score));
-
       return {
         scholarship,
-        score,
+        score: Math.max(0, Math.min(100, score)),
         reasons,
         missing,
-        warnings
+        warnings,
       };
     });
 
-    // Sort by score descending and return top matches
     return results
-      .filter(r => r.score > 40) // Only return plausible matches
+      .filter((r) => r.score > 40)
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
-  }
+  },
 };

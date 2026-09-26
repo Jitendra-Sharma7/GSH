@@ -13,14 +13,14 @@ import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import type { PublicScholarship } from "@/lib/data/public";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { mockFields } from "@/lib/data/mock-fields";
 
 export default function HomePage() {
   const router = useRouter();
-  const [featuredScholarships, setFeaturedScholarships] = useState<ScholarshipData[]>([]);
-  const [fullyFundedList, setFullyFundedList] = useState<ScholarshipData[]>([]);
+  const [featuredScholarships, setFeaturedScholarships] = useState<PublicScholarship[]>([]);
+  const [fullyFundedList, setFullyFundedList] = useState<PublicScholarship[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Search Bar State

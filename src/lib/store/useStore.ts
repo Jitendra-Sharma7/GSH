@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ScholarshipData } from '../data/mock-scholarships';
+import type { PublicScholarship } from '../data/public';
 
 export interface ApplicationTrackerItem {
   id: string; // Scholarship ID
-  scholarship: ScholarshipData;
+  scholarship: PublicScholarship;
   status: 'Interested' | 'Preparing' | 'Documents Needed' | 'Application Started' | 'Submitted' | 'Interview' | 'Accepted' | 'Rejected' | 'Waitlisted' | 'Withdrawn';
   notes: string;
   reminderDate?: string;
@@ -40,7 +40,7 @@ interface AppState {
   clearCompare: () => void;
 
   applications: ApplicationTrackerItem[];
-  trackApplication: (scholarship: ScholarshipData, status?: ApplicationTrackerItem['status']) => void;
+  trackApplication: (scholarship: PublicScholarship, status?: ApplicationTrackerItem['status']) => void;
   updateApplicationStatus: (id: string, status: ApplicationTrackerItem['status']) => void;
   removeApplication: (id: string) => void;
 

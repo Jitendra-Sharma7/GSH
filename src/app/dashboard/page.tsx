@@ -8,15 +8,15 @@ import { Container } from "@/components/layout/Layout";
 import { useStore } from "@/lib/store/useStore";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import type { PublicScholarship } from "@/lib/data/public";
 import { formatDate } from "@/lib/utils";
 import { useNow, daysUntilFrom } from "@/lib/useNow";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, user, savedScholarshipIds, applications, logout } = useStore();
-  const [savedScholarships, setSavedScholarships] = useState<ScholarshipData[]>([]);
-  const [recommendedScholarships, setRecommendedScholarships] = useState<ScholarshipData[]>([]);
+  const [savedScholarships, setSavedScholarships] = useState<PublicScholarship[]>([]);
+  const [recommendedScholarships, setRecommendedScholarships] = useState<PublicScholarship[]>([]);
   const [loading, setLoading] = useState(true);
   const now = useNow();
 
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         const saved = await Promise.all(
           savedScholarshipIds.map((id) => api.getScholarshipById(id))
         );
-        setSavedScholarships(saved.filter((s) => s !== undefined) as ScholarshipData[]);
+        setSavedScholarships(saved.filter((s) => s !== undefined) as PublicScholarship[]);
 
         // Load recommendations (just featured for now)
         const recommended = await api.getScholarships({ limit: 3 });

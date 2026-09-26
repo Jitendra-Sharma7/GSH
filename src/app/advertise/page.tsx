@@ -67,7 +67,7 @@ export default function AdvertisePage() {
         </div>
 
         {/* Offerings */}
-        <section className="mb-12">
+        <section id="ways-to-work-with-us" className="mb-12 scroll-mt-24">
           <h2 className="mb-5 text-xl font-bold text-gray-900">Ways to work with us</h2>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {offerings.map((item) => (
@@ -86,7 +86,7 @@ export default function AdvertisePage() {
         </section>
 
         {/* Principles */}
-        <section className="mb-12">
+        <section id="advertising-policy" className="mb-12 scroll-mt-24">
           <h2 className="mb-2 text-xl font-bold text-gray-900">How we handle advertising</h2>
           <p className="mb-5 max-w-2xl text-sm text-gray-600">
             Advertising only works if students trust the information around it. These rules are not

@@ -1,3 +1,18 @@
+// Global Scholarship Hub - data model
+//
+// Design notes
+// ------------
+// * Enum values are mapped with `@map` so the database stores the EXACT string
+//   values the public website already filters on (e.g. fundingType
+//   "fully-funded", status "Closing Soon"). This keeps the existing public
+//   routes working without a data migration.
+// * Publish state and deadline state are separate concepts:
+//     - `publishStatus` is admin-controlled (Draft / Published / Archived).
+//     - `deadlineStatus` is derived from the application deadline so admins
+//       never have to manually expire a scholarship.
+// * Soft deletes via `deletedAt` back the trash / restore system.
+// * Countries and Fields are proper relations, not repeated text.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,48 +22,709 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  EDITOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DeadlineStatus {
+  UPCOMING     @map("Upcoming")
+  OPENING_SOON @map("Opening Soon")
+  OPEN         @map("Open")
+  CLOSING_SOON @map("Closing Soon")
+  CLOSED       @map("Closed")
+  EXPIRED      @map("Expired")
+}
+
+enum FundingType {
+  FULLY_FUNDED    @map("fully-funded")
+  FULLY_TUITION   @map("fully-tuition")
+  PARTIAL_TUITION @map("partial-tuition")
+  STIPEND         @map("stipend")
+  MIXED           @map("mixed")
+}
+
+enum VerificationStatus {
+  VERIFIED_RECENTLY    @map("Verified Recently")
+  VERIFICATION_NEEDED  @map("Verification Needed")
+  POTENTIALLY_EXPIRED  @map("Potentially Expired")
+}
+
+enum StudyMode {
+  ON_CAMPUS  @map("On Campus")
+  ONLINE     @map("Online")
+  HYBRID     @map("Hybrid")
+  IN_PERSON  @map("In Person")
+}
+
+enum SubmissionStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum SubmissionType {
+  SCHOLARSHIP
+  UNIVERSITY
+  COUNTRY
+  FIELD
+  RESOURCE
+  CORRECTION
+}
+
+enum ResourceType {
+  GUIDE
+  PDF
+  DOCUMENT
+  LINK
+  VIDEO
+  TEMPLATE
+}
+
+// ---------------------------------------------------------------------------
+// Identity, auth, audit
+// ---------------------------------------------------------------------------
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String?
-  country       String?
-  age           Int?
-  dateOfBirth   DateTime?
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  password       String?
+  country        String?
+  age            Int?
+  dateOfBirth    DateTime?
   educationLevel String?
-  currentDegree String?
-  desiredDegree String?
-  fieldOfStudy  String?
-  gpa           Float?
-  achievements  String[]
-  languageProf  String?
-  ielts         Float?
-  toefl         Float?
-  gre           Float?
-  gmat          Float?
-  financialNeed Boolean?
-  workExp       String?
-  researchExp   String?
+  currentDegree  String?
+  desiredDegree  String?
+  fieldOfStudy   String?
+  gpa            Float?
+  achievements   String[]
+  languageProf   String?
+  ielts          Float?
+  toefl          Float?
+  gre            Float?
+  gmat           Float?
+  financialNeed  Boolean?
+  workExp        String?
+  researchExp    String?
   extracurricular String?
-  leadership    String?
-  volunteer     String?
+  leadership     String?
+  volunteer      String?
   targetCountries String[]
   targetUniversities String[]
-  studyMode     String?
-  fundingLevel  String?
-  bio           String?
-  avatar        String?
-  role          String   @default("user")
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  studyMode      String?
+  fundingLevel   String?
+  bio            String?
+  avatar         String?
+
+  role           Role       @default(USER)
+  emailVerified  DateTime?
+  suspended      Boolean    @default(false)
+  suspendedAt    DateTime?
+  suspendedReason String?
+  lastLoginAt    DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   savedScholarships SavedScholarship[]
   applications      Application[]
   documents         Document[]
   notifications     Notification[]
   alerts            Alert[]
+  sessions          Session[]
+  blogPosts         BlogPost[]
+  uploads           Media[]
+  activity          ActivityLog[]
+  reviewedSubmissions Submission[] @relation("SubmissionReviewer")
+  submittedItems    Submission[]   @relation("SubmissionAuthor")
+
+  @@index([role])
+  @@index([createdAt])
 }
+
+model Session {
+  id         String   @id @default(cuid())
+  // Only the SHA-256 hash of the token is stored, so a database leak cannot
+  // be replayed as a valid session.
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  lastUsedAt DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+model AdminNotification {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([read, createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  group     String   @default("general")
+  label     String?
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Geography
+// ---------------------------------------------------------------------------
+
+model Country {
+  id          String        @id @default(cuid())
+  name        String
+  code        String        @unique // ISO 3166-1 alpha-2
+  code3       String? // ISO 3166-1 alpha-3
+  slug        String        @unique
+  flag        String? // image path or emoji
+  description String?
+  capital     String?
+  region      String
+  continent   String?
+  currency    String?
+  officialLanguages String[]
+  studyInfo   String?
+  visaInfo    String?
+  costOfLiving String?
+  popularFields String[]
+  // Names only (not relations) because these are hand-curated highlights for
+  // the country landing page, not a claim about university ownership.
+  popularUniversities String[]
+
+  featured    Boolean       @default(false)
+  publishStatus PublishStatus @default(PUBLISHED)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
+  canonicalUrl   String?
+  ogImage        String?
+  noindex        Boolean      @default(false)
+  includeInSitemap Boolean   @default(true)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  universities University[]
+  scholarships Scholarship[]
+  scholarshipLinks ScholarshipCountry[]
+
+  @@index([publishStatus, deletedAt])
+  @@index([region])
+  @@index([name])
+}
+
+model University {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  countryId   String?
+  countryNameLegacy String? // kept only to preserve pre-migration rows
+  city        String?
+  region      String?
+  description String?
+  logo        String?
+  coverImage  String?
+  website     String?
+  admissionsWebsite String?
+  internationalAdmissionsUrl String?
+
+  foundedYear Int?
+  type        String? // e.g. "Public research"
+  ownership   String? // "Public" | "Private"
+  qsRanking   Int?
+  theRanking  Int?
+  acceptanceRate Float?
+  studentCount Int?
+  internationalStudentCount Int?
+  internationalStudentPercent Float?
+  popularFields String[]
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  contactEmail String?
+  contactPhone String?
+
+  tuitionInfo String?
+  admissionInfo String?
+  internationalInfo String?
+
+  featured    Boolean       @default(false)
+  publishStatus PublishStatus @default(PUBLISHED)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
+  canonicalUrl   String?
+  ogImage        String?
+  noindex        Boolean      @default(false)
+  includeInSitemap Boolean   @default(true)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  country      Country?      @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  scholarships Scholarship[]
+  fields       UniversityField[]
+
+  @@index([publishStatus, deletedAt])
+  @@index([countryId])
+  @@index([name])
+}
+
+model Field {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  category    String?
+  description String?
+  icon        String?
+  image       String?
+
+  // Nested fields, e.g. Computer Science -> Artificial Intelligence
+  parentId    String?
+  parent      Field?        @relation("FieldTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Field[]       @relation("FieldTree")
+
+  careerPaths String[]
+  popularDegrees String[]
+  avgSalary   String?
+
+  publishStatus PublishStatus @default(PUBLISHED)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
+  canonicalUrl   String?
+  ogImage        String?
+  noindex        Boolean      @default(false)
+  includeInSitemap Boolean   @default(true)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  scholarships ScholarshipField[]
+  universities UniversityField[]
+
+  @@index([publishStatus, deletedAt])
+  @@index([parentId])
+  @@index([name])
+}
+
+model Provider {
+  id          String       @id @default(cuid())
+  name        String
+  type        String
+  country     String?
+  website     String?
+  description String?
+  logo        String?
+  verified    Boolean      @default(false)
+  established Int?
+  focusAreas  String[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  scholarships Scholarship[]
+
+  @@index([name])
+}
+
+// ---------------------------------------------------------------------------
+// Scholarships
+// ---------------------------------------------------------------------------
+
+model Scholarship {
+  id                 String   @id @default(cuid())
+  title              String
+  shortTitle         String?
+  slug               String   @unique
+
+  description        String?
+  shortDescription   String?
+
+  providerId         String?
+  universityId       String?
+  countryId          String?
+
+  // Denormalised legacy text, only populated when no relation is available.
+  universityNameLegacy String?
+  countryNameLegacy    String?
+  region             String?
+  city               String?
+
+  logo               String?
+  coverImage         String?
+
+  // Funding
+  fundingType        FundingType
+  isFullyFunded      Boolean  @default(false)
+  fundingAmount      Float?
+  currency           String?
+  monthlyStipend     Float?
+  annualStipend      Float?
+  tuitionCoverage    Boolean  @default(false)
+  accommodationCoverage Boolean @default(false)
+  travelAllowance    Boolean  @default(false)
+  healthInsurance    Boolean  @default(false)
+  visaSupport        Boolean  @default(false)
+  researchFunding    Boolean  @default(false)
+  otherBenefits      String?
+
+  // Eligibility
+  // Free-form on purpose: real data includes JD, MD and MBA, which no closed
+  // enum covers. The admin editor suggests a canonical list but allows others.
+  degreeLevels       String[]
+  // Legacy free-text field labels (e.g. "All fields at U of T") that do not
+  // correspond to a Field row. Real fields are linked via ScholarshipField.
+  fieldLabels        String[]
+  eligibleCountries  String[]
+  nationalityRestrictions String[]
+  minGpa             Float?
+  minPercentage      Float?
+  ageRequirement     Int?
+  workExpReq         String?
+  otherRequirements  String?
+
+  // Academic
+  studyMode          StudyMode?
+  studyType          String?
+  subField           String?
+  duration           String?
+  intake             String?
+
+  // Application
+  openingDate        DateTime?
+  deadline           DateTime?
+  deadlineType       String?
+  applicationFee     Float?
+  applicationMethod  String?
+  documentsRequired  String[]
+  applicationProcess String[]
+  applicationUrl     String?
+  officialUrl        String?
+  providerContact    String?
+
+  // Language / tests
+  languageReqs       String[]
+  ieltsReq           Float?
+  toeflReq           Float?
+  greReq             Float?
+  gmatReq            Float?
+  otherTestReqs      String[]
+  academicReqs       String[]
+  selectionCriteria  String[]
+  financialNeedReq   Boolean  @default(false)
+
+  numAwards          Int?
+
+  // Verification / trust
+  lastVerifiedAt     DateTime?
+  source             String
+  verificationStatus VerificationStatus @default(VERIFICATION_NEEDED)
+
+  // Admin-controlled publish state
+  publishStatus      PublishStatus @default(DRAFT)
+  // Stamped the first time a record goes live; never cleared afterwards so the
+  // CMS can show how long a listing has been public.
+  publishedAt        DateTime?
+
+  // Derived from `deadline`; admins may override via deadlineStatusOverride.
+  deadlineStatus     DeadlineStatus @default(UPCOMING)
+  deadlineStatusOverride DeadlineStatus?
+
+  // Visibility / merchandising
+  featured           Boolean  @default(false)
+  featuredOrder      Int?
+  featuredFrom       DateTime?
+  featuredUntil      DateTime?
+
+  // SEO
+  seoTitle           String?
+  seoDescription     String?
+  seoKeywords        String[]
+  canonicalUrl       String?
+  ogImage            String?
+  noindex            Boolean  @default(false)
+  includeInSitemap  Boolean  @default(true)
+
+  isDemo             Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  provider     Provider?     @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  university   University?  @relation(fields: [universityId], references: [id], onDelete: SetNull)
+  country      Country?     @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  fields       ScholarshipField[]
+  countries    ScholarshipCountry[]
+  savedBy      SavedScholarship[]
+  applications Application[]
+
+  @@index([publishStatus, deletedAt])
+  @@index([deadline])
+  @@index([deadlineStatus])
+  @@index([featured, featuredOrder])
+  @@index([isFullyFunded, publishStatus])
+  @@index([countryId])
+  @@index([universityId])
+  @@index([fundingType])
+  @@index([verificationStatus])
+  @@index([createdAt])
+  @@index([title])
+}
+
+model ScholarshipField {
+  scholarshipId String
+  fieldId       String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  field         Field      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([scholarshipId, fieldId])
+  @@index([fieldId])
+}
+
+model ScholarshipCountry {
+  scholarshipId String
+  countryId     String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  country       Country    @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@id([scholarshipId, countryId])
+  @@index([countryId])
+}
+
+model UniversityField {
+  universityId String
+  fieldId      String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  field        Field      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([universityId, fieldId])
+  @@index([fieldId])
+}
+
+// ---------------------------------------------------------------------------
+// Editorial content
+// ---------------------------------------------------------------------------
+
+model BlogPost {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  excerpt       String?
+  content       String        @default("")
+  featuredImage String?
+  authorId      String?
+  authorName    String?
+  category      String?
+  tags          String[]
+  readingTime   Int?
+  publishedAt   DateTime?
+  scheduledAt   DateTime?
+
+  publishStatus PublishStatus @default(DRAFT)
+  featured      Boolean       @default(false)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
+  canonicalUrl   String?
+  ogImage        String?
+  noindex        Boolean      @default(false)
+  includeInSitemap Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([publishStatus, deletedAt])
+  @@index([publishedAt])
+  @@index([category])
+}
+
+model Resource {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  description   String?
+  type          ResourceType  @default(GUIDE)
+  url           String?
+  fileUrl       String?
+  thumbnail     String?
+  category      String?
+  tags          String[]
+
+  featured      Boolean       @default(false)
+  publishStatus PublishStatus @default(DRAFT)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
+  canonicalUrl   String?
+  ogImage        String?
+  noindex        Boolean      @default(false)
+  includeInSitemap Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([publishStatus, deletedAt])
+  @@index([type])
+  @@index([category])
+}
+
+model Guide {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  category  String
+  content   String
+  excerpt   String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  category  String?
+  publishStatus PublishStatus @default(PUBLISHED)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  metaTitle String?
+  metaDescription String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+// Preserves old URLs when an admin changes a slug.
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  isPermanent Boolean @default(true)
+  createdAt  DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Submissions & media
+// ---------------------------------------------------------------------------
+
+model Submission {
+  id           String           @id @default(cuid())
+  type         SubmissionType
+  status       SubmissionStatus @default(PENDING)
+  payload      Json
+  submitterName String?
+  submitterEmail String?
+  submitterId  String?
+  internalNotes String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  // Set when an approved submission was converted into real content.
+  convertedType String?
+  convertedId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  submitter  User? @relation("SubmissionAuthor", fields: [submitterId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String   @unique
+  originalName String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  url          String
+  alt          String?
+  folder       String   @default("general")
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  deletedAt    DateTime?
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([folder, deletedAt])
+  @@index([mimeType])
+}
+
+// ---------------------------------------------------------------------------
+// Existing user-facing models (preserved)
+// ---------------------------------------------------------------------------
 
 model SavedScholarship {
   id           String     @id @default(cuid())
@@ -76,6 +752,8 @@ model Application {
   updatedAt     DateTime  @updatedAt
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Notification {
@@ -113,151 +791,4 @@ model Document {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Scholarship {
-  id                 String   @id @default(cuid())
-  title              String
-  providerId         String?
-  universityId       String?
-  countryId          String?
-  description        String?
-  degreeLevels       String[]
-  fields             String[]
-  eligibleCountries  String[]
-  fundingType        String
-  fundingAmount      Float?
-  currency           String?
-  tuitionCoverage    Boolean  @default(false)
-  accommodationCoverage Boolean @default(false)
-  livingStipend      Float?
-  travelAllowance    Float?
-  healthInsurance    Boolean  @default(false)
-  visaSupport        Boolean  @default(false)
-  researchFunding    Boolean  @default(false)
-  applicationFee     Float?
-  deadline           DateTime?
-  openingDate        DateTime?
-  duration           String?
-  numAwards          Int?
-  minGpa             Float?
-  ageRequirement     Int?
-  languageReqs       String[]
-  ieltsReq           Float?
-  toeflReq           Float?
-  otherTestReqs      String[]
-  academicReqs       String[]
-  financialNeedReq   Boolean  @default(false)
-  workExpReq        String?
-  documentsRequired  String[]
-  selectionCriteria  String[]
-  applicationProcess String[]
-  applicationUrl     String?
-  officialUrl        String?
-  providerContact    String?
-  lastVerifiedAt     DateTime?
-  source             String
-  verificationStatus String   @default("Verification Required")
-  status             String   @default("Open")
-  region             String?
-  isDemo             Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  provider     Provider?     @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  university   University?  @relation(fields: [universityId], references: [id], onDelete: SetNull)
-  country      Country?     @relation(fields: [countryId], references: [id], onDelete: SetNull)
-  savedBy      SavedScholarship[]
-  applications Application[]
-}
-
-model Provider {
-  id          String       @id @default(cuid())
-  name        String
-  type        String
-  country     String?
-  website     String?
-  description String?
-  verified    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  scholarships Scholarship[]
-}
-
-model University {
-  id          String       @id @default(cuid())
-  name        String
-  country     String
-  city        String?
-  website     String?
-  description String?
-  programs    String[]
-  tuitionInfo String?
-  admissionInfo String?
-  internationalInfo String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  scholarships Scholarship[]
-}
-
-model Country {
-  id        String       @id @default(cuid())
-  name      String
-  code      String
-  region    String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  scholarships Scholarship[]
-}
-
-model Field {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String
-  createdAt DateTime @default(now())
-}
-
-model Guide {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String
-  category  String
-  content   String
-  excerpt   String?
-  published Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model FAQ {
-  id        String   @id @default(cuid())
-  question  String
-  answer    String
-  category  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model BlogPost {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String
-  category  String
-  content   String
-  excerpt   String?
-  author    String?
-  published Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model Page {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String
-  content   String
-  metaTitle String?
-  metaDescription String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
 }

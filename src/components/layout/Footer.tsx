@@ -32,7 +32,7 @@ export function Footer() {
                   { label: "Fields of Study", href: "/fields" },
                   { label: "Fully Funded", href: "/fully-funded" },
                 ].map((item) => (
-                  <li key={item.href}>
+                  <li key={item.label}>
                     <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
                       {item.label}
                     </Link>
@@ -51,7 +51,7 @@ export function Footer() {
                   { label: "Scholarship Finder", href: "/finder" },
                   { label: "Deadline Calendar", href: "/deadlines" },
                 ].map((item) => (
-                  <li key={item.href}>
+                  <li key={item.label}>
                     <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
                       {item.label}
                     </Link>
@@ -65,10 +65,10 @@ export function Footer() {
               <ul className="space-y-3">
                 {[
                   { label: "Submit a Scholarship", href: "/submit-scholarship" },
-                  { label: "Partner With Us", href: "/advertise" },
-                  { label: "Advertise", href: "/advertise" },
+                  { label: "Partner With Us", href: "/advertise#ways-to-work-with-us" },
+                  { label: "Advertising Policy", href: "/advertise#advertising-policy" },
                 ].map((item) => (
-                  <li key={item.href}>
+                  <li key={item.label}>
                     <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
                       {item.label}
                     </Link>
@@ -90,7 +90,7 @@ export function Footer() {
                     { label: "Terms of Service", href: "/terms" },
                     { label: "Cookie Policy", href: "/cookies" },
                   ].map((item) => (
-                    <li key={item.href}>
+                    <li key={item.label}>
                       <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
                         {item.label}
                       </Link>

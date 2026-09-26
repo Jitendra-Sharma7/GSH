@@ -7,11 +7,11 @@ import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { mockFields } from "@/lib/data/mock-fields";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import type { PublicScholarship } from "@/lib/data/public";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 
 interface MatchResultItem {
-  scholarship: ScholarshipData;
+  scholarship: PublicScholarship;
   score: number;
   reasons: string[];
   missing?: string[];

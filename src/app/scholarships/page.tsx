@@ -7,7 +7,7 @@ import { Container } from "@/components/layout/Layout";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { SearchFilters } from "@/components/scholarships/SearchFilters";
 import { api, PaginatedResult } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import type { PublicScholarship } from "@/lib/data/public";
 
 function ScholarshipsContent() {
   const searchParams = useSearchParams();
@@ -24,7 +24,7 @@ function ScholarshipsContent() {
 
   const [sortOption, setSortOption] = useState("relevance");
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<PaginatedResult<ScholarshipData>>({
+  const [result, setResult] = useState<PaginatedResult<PublicScholarship>>({
     data: [],
     total: 0,
     page: 1,

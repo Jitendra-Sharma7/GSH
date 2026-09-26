@@ -7,39 +7,55 @@ import { ArrowLeft, ExternalLink, Bookmark, Layers, MapPin, GraduationCap, Dolla
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
-import { ScholarshipData } from "@/lib/data/mock-scholarships";
-import { mockCountries } from "@/lib/data/mock-countries";
-import { mockProviders } from "@/lib/data/mock-providers";
-import { mockUniversities } from "@/lib/data/mock-universities";
+import type { PublicScholarship } from "@/lib/data/public";
 import { useStore } from "@/lib/store/useStore";
 import { formatDate, formatDateLong, getVerificationBadge } from "@/lib/utils";
 import toast from "react-hot-toast";
 
-export default function ScholarshipDetailsClient() {
+export default function ScholarshipDetailsClient({
+  initialScholarship,
+}: {
+  initialScholarship?: PublicScholarship;
+}) {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
 
-  const [scholarship, setScholarship] = useState<ScholarshipData | null>(null);
-  const [loading, setLoading] = useState(true);
-
+  // The server already resolved this record and passed it in, so there is no
+  // loading state and no second round trip on a normal page view.
+  const [scholarship, setScholarship] = useState<PublicScholarship | null>(
+    initialScholarship ?? null
+  );
   const { isSaved, toggleSaveScholarship, compareIds, toggleCompare, trackApplication } = useStore();
 
+  // Which id we have already settled on, so "loading" can be derived rather than
+  // tracked in state. The server normally supplies the record; this only matters
+  // for a client-side navigation to another id.
+  const [settledId, setSettledId] = useState<string | null>(null);
+
+  // Refetch only if the client ever navigates between records without the
+  // server re-rendering (for example after a client-side push).
   useEffect(() => {
-    async function load() {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const data = await api.getScholarshipById(id);
-        if (data) {
-          setScholarship(data);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [id]);
+    if (initialScholarship) return;
+    if (!id) return;
+    let cancelled = false;
+    api
+      .getScholarshipById(id)
+      .then((data) => {
+        if (!cancelled) setScholarship(data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setScholarship(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSettledId(id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, initialScholarship]);
+
+  const loading = !initialScholarship && Boolean(id) && settledId !== id;
 
   if (loading) {
     return (
@@ -65,11 +81,11 @@ export default function ScholarshipDetailsClient() {
     );
   }
 
-  const country = mockCountries.find((c) => c.id === scholarship.countryId);
-  const provider = mockProviders.find((p) => p.id === scholarship.providerId);
-  const university = scholarship.universityId
-    ? mockUniversities.find((u) => u.id === scholarship.universityId)
-    : null;
+  // Country, provider and university travel with the record, so no client-side
+  // lookup table is needed. A stipend only counts when one is actually recorded.
+  const hasStipend = (scholarship.livingStipend ?? 0) > 0;
+  // Prefer the dedicated application URL, fall back to the official page.
+  const applyUrl = scholarship.applicationUrl || scholarship.officialUrl || null;
 
   const saved = isSaved(scholarship.id);
   const isCompared = compareIds.includes(scholarship.id);
@@ -163,22 +179,26 @@ export default function ScholarshipDetailsClient() {
 
           {/* Sub-header info */}
           <div className="mt-4 flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-600">
-            {provider && (
+            {scholarship.providerName && (
               <div className="flex items-center gap-1.5">
                 <Building className="h-4 w-4 text-gray-400" />
-                <span className="font-semibold text-gray-900">{provider.name}</span>
+                <span className="font-semibold text-gray-900">{scholarship.providerName}</span>
               </div>
             )}
-            {university && (
+            {scholarship.universityName && (
               <div className="flex items-center gap-1.5">
                 <GraduationCap className="h-4 w-4 text-gray-400" />
-                <span>{university.name}</span>
+                <span>{scholarship.universityName}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4 text-gray-400" />
-              <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
-              <span>{country?.name || "Global"}</span>
+              <CountryFlag
+                code={scholarship.countryCode}
+                name={scholarship.countryName ?? undefined}
+                size="xs"
+              />
+              <span>{scholarship.countryName || "Global"}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-amber-500" />
@@ -194,15 +214,23 @@ export default function ScholarshipDetailsClient() {
                 Always submit directly through the official provider portal. Global Scholarship Hub charges no fees.
               </p>
             </div>
-            <a
-              href={scholarship.applicationUrl || scholarship.officialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-900 shadow-md transition-transform hover:-translate-y-0.5 hover:bg-gray-100 shrink-0"
-            >
-              <span>Apply on Official Website</span>
-              <ExternalLink className="h-4 w-4" />
-            </a>
+            {/* Only offer an apply link when an official URL was actually
+                recorded, so we never render a button that goes nowhere. */}
+            {applyUrl ? (
+              <a
+                href={applyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-900 shadow-md transition-transform hover:-translate-y-0.5 hover:bg-gray-100 shrink-0"
+              >
+                <span>Apply on Official Website</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : (
+              <span className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 px-6 py-3 text-sm font-semibold text-gray-500 sm:cursor-not-allowed">
+                Application link not yet verified
+              </span>
+            )}
           </div>
         </div>
 
@@ -241,14 +269,14 @@ export default function ScholarshipDetailsClient() {
                 </div>
 
                 <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5">
-                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${scholarship.livingStipend > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
-                    {scholarship.livingStipend > 0 ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${hasStipend ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
+                    {hasStipend ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-gray-900">Living Stipend</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {scholarship.livingStipend > 0
-                        ? `${scholarship.currency || '$'}${scholarship.livingStipend.toLocaleString()} / month allowance`
+                      {hasStipend
+                        ? `${scholarship.currency || '$'}${(scholarship.livingStipend ?? 0).toLocaleString()} / month allowance`
                         : "Self-funded"}
                     </p>
                   </div>
@@ -429,15 +457,17 @@ export default function ScholarshipDetailsClient() {
                 </div>
               </div>
 
-              <a
-                href={scholarship.officialUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <span>Visit Official Website</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+              {scholarship.officialUrl ? (
+                <a
+                  href={scholarship.officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <span>Visit Official Website</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              ) : null}
             </div>
 
             {/* Required Documents Checklist */}
@@ -462,7 +492,7 @@ export default function ScholarshipDetailsClient() {
                 <span>Verified Official Source</span>
               </div>
               <p>
-                Provider: <span className="font-semibold text-gray-900">{provider?.name || 'Verified Organization'}</span>
+                Provider: <span className="font-semibold text-gray-900">{scholarship.providerName || "Verified Organization"}</span>
               </p>
               <p>
                 Last verified: <span className="font-semibold text-gray-900">{formatDate(scholarship.lastVerifiedAt)}</span>
