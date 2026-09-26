@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { mockFields } from "@/lib/data/mock-fields";
 import { api } from "@/lib/data/store";
@@ -275,7 +276,12 @@ export default function ScholarshipFinderPage() {
                               : "border-gray-200 hover:bg-gray-50 text-gray-700"
                           }`}
                         >
-                          <span>{c.flag}</span>
+                          <CountryFlag
+                            code={c.code}
+                            emoji={c.flag}
+                            name={c.name}
+                            size="sm"
+                          />
                           <span className="truncate">{c.name}</span>
                         </button>
                       );

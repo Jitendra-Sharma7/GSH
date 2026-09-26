@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Target, Calendar, Trash2, Plus, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { useStore, ApplicationTrackerItem } from "@/lib/store/useStore";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { formatDate } from "@/lib/utils";
@@ -120,8 +121,8 @@ export default function TrackerPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <span>{country?.flag}</span>
+                      <span className="flex items-center gap-1.5">
+                        <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
                         <span>{country?.name}</span>
                       </span>
                       <span className="flex items-center gap-1">

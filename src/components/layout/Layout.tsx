@@ -82,7 +82,7 @@ interface FlexProps {
   direction?: "row" | "col";
   align?: "start" | "center" | "end" | "stretch";
   justify?: "start" | "center" | "end" | "between" | "around";
-  gap?: "sm" | "md" | "lg";
+  gap?: "sm" | "md" | "lg" | 0 | 1 | 1.5 | 2 | 2.5 | 3 | 4 | 5 | 6 | 8 | `${number}`;
   wrap?: boolean;
   className?: string;
 }
@@ -91,9 +91,27 @@ export function Flex({ children, direction = "row", align = "center", justify = 
   const directions = { row: "flex-row", col: "flex-col" };
   const aligns = { start: "items-start", center: "items-center", end: "items-end", stretch: "items-stretch" };
   const justifies = { start: "justify-start", center: "justify-center", end: "justify-end", between: "justify-between", around: "justify-around" };
-  const gaps = { sm: "gap-2", md: "gap-3", lg: "gap-4" };
+  const gaps: Record<string, string> = {
+    sm: "gap-2",
+    md: "gap-3",
+    lg: "gap-4",
+    0: "gap-0",
+    1: "gap-1",
+    1.5: "gap-1.5",
+    2: "gap-2",
+    2.5: "gap-2.5",
+    3: "gap-3",
+    4: "gap-4",
+    5: "gap-5",
+    6: "gap-6",
+    8: "gap-8",
+  } as Record<string, string>;
+  const gapClass =
+    gap === "sm" || gap === "md" || gap === "lg"
+      ? gaps[gap]
+      : gaps[String(gap)] ?? `gap-${gap}`;
   return (
-    <div className={cn("flex", directions[direction], aligns[align], justifies[justify], gaps[gap], wrap && "flex-wrap", className)}>
+    <div className={cn("flex", directions[direction], aligns[align], justifies[justify], gapClass, wrap && "flex-wrap", className)}>
       {children}
     </div>
   );

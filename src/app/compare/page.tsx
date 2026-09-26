@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Layers, X, ArrowRight, Building, MapPin, DollarSign, Calendar, Check, FileText } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import { useStore } from "@/lib/store/useStore";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
@@ -57,7 +58,8 @@ export default function ComparePage() {
     { key: "provider", label: "Provider / Organization", render: (s: ScholarshipData) => mockProviders.find(p => p.id === s.providerId)?.name || "N/A" },
     { key: "country", label: "Destination Country", render: (s: ScholarshipData) => {
       const c = mockCountries.find(c => c.id === s.countryId);
-      return c ? `${c.flag} ${c.name}` : "Global";
+      if (!c) return "Global";
+      return <CountryFlagWithName code={c.code} emoji={c.flag} name={c.name} size="sm" />;
     }},
     { key: "degrees", label: "Degree Levels", render: (s: ScholarshipData) => s.degreeLevels.join(", ") },
     { key: "fields", label: "Fields of Study", render: (s: ScholarshipData) => s.fields.slice(0, 2).join(", ") + (s.fields.length > 2 ? "..." : "") },

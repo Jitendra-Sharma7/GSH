@@ -138,7 +138,7 @@ export default function SubmitScholarshipPage() {
                   >
                     {mockCountries.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.flag} {c.name}
+                        {c.name}
                       </option>
                     ))}
                   </select>

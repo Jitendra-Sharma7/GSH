@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Calendar as CalendarIcon, Clock, Filter, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { mockCountries } from "@/lib/data/mock-countries";
@@ -118,8 +119,12 @@ export default function DeadlinesPage() {
                       >
                         {s.title}
                       </Link>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {country?.flag} {country?.name} • {s.fundingType.replace('-', ' ').toUpperCase()} • {s.degreeLevels.join(', ')}
+                      <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
+                          {country?.name}
+                        </span>
+                        <span>• {s.fundingType.replace('-', ' ').toUpperCase()} • {s.degreeLevels.join(', ')}</span>
                       </p>
                     </div>
                   </div>

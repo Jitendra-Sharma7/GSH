@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Globe, Search, ArrowRight, DollarSign, BookOpen } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
 
 export default function CountriesPage() {
@@ -73,7 +74,13 @@ export default function CountriesPage() {
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-4xl">{c.flag}</span>
+                  <CountryFlag
+                    code={c.code}
+                    emoji={c.flag}
+                    name={c.name}
+                    size="xl"
+                    className="shadow-sm"
+                  />
                   <span className="rounded-full bg-primary-50 text-primary-700 font-bold px-2.5 py-1 text-xs border border-primary-100">
                     {c.scholarshipCount} opportunities
                   </span>

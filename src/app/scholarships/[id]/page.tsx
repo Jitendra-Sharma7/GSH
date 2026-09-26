@@ -25,6 +25,7 @@ import {
   X
 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
 import { mockCountries } from "@/lib/data/mock-countries";
@@ -201,7 +202,8 @@ export default function ScholarshipDetailsPage() {
             )}
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4 text-gray-400" />
-              <span>{country?.flag} {country?.name || "Global"}</span>
+              <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
+              <span>{country?.name || "Global"}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-amber-500" />

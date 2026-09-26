@@ -9,6 +9,7 @@ import {
   Layers
 } from "lucide-react";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { mockCountries } from "@/lib/data/mock-countries";
 import { mockProviders } from "@/lib/data/mock-providers";
 import { mockUniversities } from "@/lib/data/mock-universities";
@@ -134,7 +135,8 @@ export function ScholarshipCard({
         {/* Key Info Pills */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-600 sm:grid-cols-3">
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2">
-            <span className="truncate">{country?.flag} {country?.name || "Global"}</span>
+            <CountryFlag code={country?.code} emoji={country?.flag} name={country?.name} size="xs" />
+            <span className="truncate">{country?.name || "Global"}</span>
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2">

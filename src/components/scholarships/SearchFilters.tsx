@@ -103,7 +103,7 @@ export function SearchFilters({
           <option value="">All Countries</option>
           {mockCountries.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.flag} {c.name}
+              {c.name}
             </option>
           ))}
         </select>

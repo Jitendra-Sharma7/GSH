@@ -10,6 +10,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { Container, Flex, Grid } from "@/components/layout/Layout";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
 import { api } from "@/lib/data/store";
 import { ScholarshipData } from "@/lib/data/mock-scholarships";
@@ -164,7 +165,7 @@ export default function HomePage() {
                     <option value="">Any Destination Country</option>
                     {mockCountries.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.flag} {c.name}
+                        {c.name}
                       </option>
                     ))}
                   </select>
@@ -355,7 +356,15 @@ export default function HomePage() {
                 href={`/scholarships?country=${c.id}`}
                 className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-xs transition-all hover:-translate-y-1 hover:border-primary-300 hover:shadow-md"
               >
-                <div className="text-3xl mb-2">{c.flag}</div>
+                <div className="mb-2">
+                  <CountryFlag
+                    code={c.code}
+                    emoji={c.flag}
+                    name={c.name}
+                    size="lg"
+                    className="shadow-sm"
+                  />
+                </div>
                 <h3 className="font-bold text-gray-900 group-hover:text-primary-600 text-sm truncate">
                   {c.name}
                 </h3>
