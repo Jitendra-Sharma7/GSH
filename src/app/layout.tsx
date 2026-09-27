@@ -3,7 +3,7 @@ import "./globals.css";
 import { Inter, Merriweather } from "next/font/google";
 import { Providers } from "./providers";
 import { SiteChrome } from "@/components/layout/SiteChrome";
-import { getSiteBranding } from "@/lib/site-branding";
+import { getSiteBranding } from "@/lib/site-branding-server";
 
 const inter = Inter({
   subsets: ["latin"],

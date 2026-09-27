@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowRight } from "lucide-react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import type { PublicCountry } from "@/lib/data/public";
+
+/** Cards shown per page. Twelve fills three columns without a long scroll. */
+const PER_PAGE = 12;
 
 function uniqueRegions(countries: PublicCountry[]): string[] {
   return Array.from(
@@ -19,6 +22,7 @@ function uniqueRegions(countries: PublicCountry[]): string[] {
 export function CountriesBrowser({ countries }: { countries: PublicCountry[] }) {
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState("all");
+  const [page, setPage] = useState(1);
 
   const regions = useMemo(() => uniqueRegions(countries), [countries]);
 
@@ -34,100 +38,200 @@ export function CountriesBrowser({ countries }: { countries: PublicCountry[] }) 
     });
   }, [countries, search, region]);
 
+  // Narrowing the list while sitting on page 7 would otherwise show an empty
+  // grid, so search and filter changes return to page 1 in their own handler.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PER_PAGE;
+  const visible = filtered.slice(start, start + PER_PAGE);
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const changeRegion = (value: string) => {
+    setRegion(value);
+    setPage(1);
+  };
+
+  /** Page numbers with ellipses, e.g. 1 … 4 5 6 … 20. */
+  const pageNumbers = useMemo(() => {
+    const out: (number | "gap")[] = [];
+    const add = (n: number) => {
+      if (out[out.length - 1] !== n) out.push(n);
+    };
+    add(1);
+    for (let n = safePage - 1; n <= safePage + 1; n += 1) {
+      if (n > 1 && n < totalPages) add(n);
+    }
+    if (totalPages > 1) add(totalPages);
+    const withGaps: (number | "gap")[] = [];
+    out.forEach((n, i) => {
+      if (i > 0 && typeof n === "number" && typeof out[i - 1] === "number" && n - (out[i - 1] as number) > 1) {
+        withGaps.push("gap");
+      }
+      withGaps.push(n);
+    });
+    return withGaps;
+  }, [safePage, totalPages]);
+
   return (
     <>
-      <div className="mb-8 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <label htmlFor="country-search" className="sr-only">
+            Search countries by name or capital
+          </label>
           <input
-            type="text"
+            id="country-search"
+            type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search countries..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-xs shadow-xs focus:border-primary-500 focus:outline-none"
+            onChange={(e) => changeSearch(e.target.value)}
+            placeholder="Search countries or capitals..."
+            className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm shadow-xs focus:border-primary-500 focus:outline-none"
           />
         </div>
 
-        {regions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 self-start sm:self-auto">
-            {["all", ...regions].map((reg) => (
-              <button
-                key={reg}
-                onClick={() => setRegion(reg)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
-                  region === reg
-                    ? "bg-primary-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {reg === "all" ? "All Regions" : reg}
-              </button>
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-gray-600" role="status">
+          <span className="font-semibold text-gray-900">{filtered.length}</span>{" "}
+          {filtered.length === 1 ? "country" : "countries"}
+          {filtered.length > 0 && (
+            <span className="text-gray-500">
+              {" "}
+              &middot; showing {start + 1}&ndash;{Math.min(start + PER_PAGE, filtered.length)}
+            </span>
+          )}
+        </p>
       </div>
+
+      {regions.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-1.5">
+          {["all", ...regions].map((reg) => (
+            <button
+              key={reg}
+              onClick={() => changeRegion(reg)}
+              aria-pressed={region === reg}
+              className={`min-h-[36px] rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                region === reg
+                  ? "bg-primary-600 text-white"
+                  : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {reg === "all" ? "All Regions" : reg}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
           No published countries match your search yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((c) => (
-            <div
-              key={c.id}
-              className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <CountryFlag
-                    code={c.code}
-                    name={c.name}
-                    size="xl"
-                    className="shadow-sm"
-                  />
-                  <span className="rounded-full bg-primary-50 text-primary-700 font-bold px-2.5 py-1 text-xs border border-primary-100">
-                    {c.scholarshipCount} opportunities
-                  </span>
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-900">{c.name}</h3>
-                {c.region && (
-                  <p className="text-xs font-semibold text-gray-500 mb-3">{c.region}</p>
-                )}
-
-                {c.description ? (
-                  <p className="text-xs text-gray-600 leading-relaxed mb-4 line-clamp-3">
-                    {c.description}
-                  </p>
-                ) : null}
-
-                <div className="space-y-2 border-t border-gray-100 pt-3 text-xs text-gray-600">
-                  {c.avgLivingCost && (
-                    <div>
-                      <span className="font-semibold text-gray-900">Avg Living Cost: </span>
-                      <span>{c.avgLivingCost}</span>
-                    </div>
-                  )}
-                  {c.popularUniversities.length > 0 && (
-                    <div>
-                      <span className="font-semibold text-gray-900">Top Universities: </span>
-                      <span>{c.popularUniversities.slice(0, 2).join(", ")}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <Link
-                href={`/scholarships?country=${encodeURIComponent(c.id)}`}
-                className="mt-6 flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 py-2.5 text-xs font-bold text-primary-700 border border-gray-200 hover:bg-primary-50 transition-colors"
+        <>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {visible.map((c) => (
+              <div
+                key={c.id}
+                className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <span>Browse {c.name} Scholarships</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <CountryFlag code={c.code} name={c.name} size="xl" className="shadow-sm" />
+                    <span className="shrink-0 rounded-full border border-primary-100 bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">
+                      {c.scholarshipCount} opportunities
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-900">{c.name}</h3>
+                  <p className="mt-0.5 text-xs font-semibold text-gray-500">
+                    {c.capital ? `${c.capital} \u00b7 ` : ""}
+                    {c.region}
+                  </p>
+
+                  {c.description ? (
+                    <p className="mb-4 mt-3 line-clamp-3 text-xs leading-relaxed text-gray-600">
+                      {c.description}
+                    </p>
+                  ) : null}
+
+                  {(c.currency || c.popularUniversities.length > 0) && (
+                    <div className="space-y-2 border-t border-gray-100 pt-3 text-xs text-gray-600">
+                      {c.currency && (
+                        <div>
+                          <span className="font-semibold text-gray-900">Currency: </span>
+                          <span>{c.currency}</span>
+                        </div>
+                      )}
+                      {c.popularUniversities.length > 0 && (
+                        <div>
+                          <span className="font-semibold text-gray-900">Top Universities: </span>
+                          <span>{c.popularUniversities.slice(0, 2).join(", ")}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Link
+                  href={`/scholarships?country=${encodeURIComponent(c.id)}`}
+                  className="mt-6 flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  <span>Browse {c.name} Scholarships</span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" />
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <nav
+              aria-label="Country list pages"
+              className="mt-10 flex flex-wrap items-center justify-center gap-1.5"
+            >
+              <button
+                onClick={() => setPage(safePage - 1)}
+                disabled={safePage === 1}
+                aria-label="Previous page"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {pageNumbers.map((n, i) =>
+                n === "gap" ? (
+                  <span key={`gap-${i}`} className="px-1.5 text-sm text-gray-400" aria-hidden="true">
+                    &hellip;
+                  </span>
+                ) : (
+                  <button
+                    key={n}
+                    onClick={() => setPage(n)}
+                    aria-current={n === safePage ? "page" : undefined}
+                    className={`min-h-[44px] min-w-[44px] rounded-xl px-3 text-sm font-semibold transition-colors ${
+                      n === safePage
+                        ? "bg-primary-600 text-white"
+                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ),
+              )}
+
+              <button
+                onClick={() => setPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                aria-label="Next page"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </nav>
+          )}
+        </>
       )}
     </>
   );

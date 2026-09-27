@@ -86,3 +86,22 @@ export async function rateLimit(key: string, limit?: number): Promise<RateLimitR
 export function resetRateLimits(): void {
   buckets.clear();
 }
+
+/**
+ * Forgets one bucket, e.g. after a successful sign-in.
+ *
+ * The point of the login limiter is to slow down password guessing, which only
+ * failed attempts help. Charging a correct password against the same budget
+ * means an administrator who mistypes once and then signs in normally can lock
+ * themselves out, so a successful attempt clears the record instead.
+ */
+export async function clearRateLimit(key: string): Promise<void> {
+  let ip = "unknown";
+  try {
+    const hdrs = await headers();
+    ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? ip;
+  } catch {
+    // Outside a request scope; the caller's key alone identifies the bucket.
+  }
+  buckets.delete(`${key}:${ip}`);
+}

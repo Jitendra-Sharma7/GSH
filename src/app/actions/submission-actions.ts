@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+import { MAX_SUBMISSIONS_PER_HOUR, acceptSubmission } from "@/lib/submissions/intake";
 import { atLeast, getCurrentUser, isStaff, type SessionUser } from "@/lib/auth";
 import { recordActivity } from "@/lib/audit";
 import { generateUniqueSlug, slugify } from "@/lib/slug";
@@ -19,6 +21,27 @@ import { generateUniqueSlug, slugify } from "@/lib/slug";
 export interface SubmissionActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
+}
+
+export type SubmitScholarshipResult =
+  | { ok: true; id: string; message: string }
+  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+
+/**
+ * Public intake, called by the submission form.
+ *
+ * The browser does not POST to `/api/public/submissions`; it calls this. Same
+ * rules either way - both paths run `lib/submissions/intake`.
+ */
+export async function submitScholarship(input: unknown): Promise<SubmitScholarshipResult> {
+  const result = await acceptSubmission(input, {
+    throttle: () => rateLimit("submission", MAX_SUBMISSIONS_PER_HOUR),
+  });
+
+  if (!result.ok) {
+    return { ok: false, error: result.error, fieldErrors: result.fieldErrors };
+  }
+  return { ok: true, id: result.id, message: result.message };
 }
 
 class AuthError extends Error {}

@@ -3,139 +3,111 @@
 import React from "react";
 import Link from "next/link";
 import { Container, Grid } from "@/components/layout/Layout";
+import { SiteLogo } from "@/components/layout/SiteLogo";
 import { SITE_BRANDING_FALLBACK, type SiteBranding } from "@/lib/site-branding";
+
+/**
+ * One link group in the footer row. Every group renders the same way, so the
+ * columns line up on their headings and their first link.
+ */
+function LinkGroup({ title, items }: { title: string; items: { label: string; href: string }[] }) {
+  return (
+    <div>
+      <h4 className="mb-4 text-sm font-semibold text-white">{title}</h4>
+      <ul className="space-y-3">
+        {items.map((item) => (
+          <li key={item.label}>
+            <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function Footer({ branding = SITE_BRANDING_FALLBACK }: { branding?: SiteBranding }) {
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <Container>
-        <div className="py-12 lg:py-16">
-          <Grid cols={4} gap="lg" className="mb-12">
-            <div className="col-span-1 sm:col-span-2">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg">
-                  GSH
-                </div>
-                <span className="text-xl font-bold text-white">Global Scholarship Hub</span>
-              </Link>
-              <p className="mt-4 max-w-sm text-sm text-gray-400">
-                {branding.tagline}
-              </p>
-            </div>
+    <footer className="border-t border-gray-800 bg-gray-900 text-gray-300">
+      <Container size="xl">
+        {/* All six groups sit in a single row on wide screens. The brand takes
+            two of the seven tracks so the wordmark and tagline keep their
+            line breaks instead of being squeezed into one narrow column. */}
+        <Grid cols={7} gap="lg" className="border-b border-gray-800 py-12 lg:py-14">
+          <div className="xl:col-span-2">
+            <SiteLogo tone="light" size={40} className="w-fit" />
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-400">{branding.tagline}</p>
+          </div>
 
-            <div>
-              <h4 className="mb-4 text-sm font-semibold text-white">Explore</h4>
-              <ul className="space-y-3">
-                {[
-                  { label: "Scholarships", href: "/scholarships" },
-                  { label: "Universities", href: "/universities" },
-                  { label: "Countries", href: "/countries" },
-                  { label: "Fields of Study", href: "/fields" },
-                  { label: "Fully Funded", href: "/fully-funded" },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <LinkGroup
+            title="Explore"
+            items={[
+              { label: "Scholarships", href: "/scholarships" },
+              { label: "Universities", href: "/universities" },
+              { label: "Countries", href: "/countries" },
+              { label: "Fields of Study", href: "/fields" },
+              { label: "Fully Funded", href: "/fully-funded" },
+            ]}
+          />
 
-            <div>
-              <h4 className="mb-4 text-sm font-semibold text-white">Resources</h4>
-              <ul className="space-y-3">
-                {[
-                  { label: "Scholarship Guides", href: "/resources" },
-                  { label: "Blog", href: "/blog" },
-                  { label: "FAQ", href: "/faq" },
-                  { label: "Scholarship Finder", href: "/finder" },
-                  { label: "Deadline Calendar", href: "/deadlines" },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <LinkGroup
+            title="Resources"
+            items={[
+              { label: "Scholarship Guides", href: "/resources" },
+              { label: "Blog", href: "/blog" },
+              { label: "FAQ", href: "/faq" },
+              { label: "Scholarship Finder", href: "/finder" },
+              { label: "Deadline Calendar", href: "/deadlines" },
+            ]}
+          />
 
-            <div>
-              <h4 className="mb-4 text-sm font-semibold text-white">For Organizations</h4>
-              <ul className="space-y-3">
-                {[
-                  { label: "Submit a Scholarship", href: "/submit-scholarship" },
-                  { label: "Partner With Us", href: "/advertise#ways-to-work-with-us" },
-                  { label: "Advertising Policy", href: "/advertise#advertising-policy" },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Grid>
+          <LinkGroup
+            title="For Organizations"
+            items={[
+              { label: "Submit a Scholarship", href: "/submit-scholarship" },
+              { label: "Partner With Us", href: "/advertise#ways-to-work-with-us" },
+              { label: "Advertising Policy", href: "/advertise#advertising-policy" },
+            ]}
+          />
 
-          <div className="border-t border-gray-800 pt-8">
-            <Grid cols={3} gap="lg" className="mb-8">
-              <div>
-                <h4 className="mb-4 text-sm font-semibold text-white">Company</h4>
-                <ul className="space-y-3">
-                  {[
-                    { label: "About", href: "/about" },
-                    { label: "Contact", href: "/contact" },
-                    { label: "Privacy Policy", href: "/privacy" },
-                    { label: "Terms of Service", href: "/terms" },
-                    { label: "Cookie Policy", href: "/cookies" },
-                  ].map((item) => (
-                    <li key={item.label}>
-                      <Link href={item.href} className="text-sm text-gray-400 transition-colors hover:text-white">
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="mb-4 text-sm font-semibold text-white">Contact</h4>
-                <ul className="space-y-3">
-                  <li>
+          <LinkGroup
+            title="Company"
+            items={[
+              { label: "About", href: "/about" },
+              { label: "Contact", href: "/contact" },
+              { label: "Privacy Policy", href: "/privacy" },
+              { label: "Terms of Service", href: "/terms" },
+              { label: "Cookie Policy", href: "/cookies" },
+            ]}
+          />
+
+          <div>
+            <h4 className="mb-4 text-sm font-semibold text-white">Contact</h4>
+            <ul className="space-y-3">
+              <li>
                 <a
                   href={`mailto:${branding.contactEmail}`}
-                  className="break-all text-sm text-gray-400 hover:text-white"
+                  className="break-all text-sm text-gray-400 transition-colors hover:text-white"
                 >
                   {branding.contactEmail}
                 </a>
-                  </li>
-                  <li>
-                    <span className="text-sm text-gray-400">Global (Online)</span>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="mb-4 text-sm font-semibold text-white">Newsletter</h4>
-                <p className="mb-3 text-sm text-gray-400">Get scholarship alerts and guides.</p>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                />
-              </div>
-            </Grid>
-
-            <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-800 pt-6 sm:flex-row">
-              <p className="text-sm text-gray-500">
-                © 2026 Global Scholarship Hub. All rights reserved.
-              </p>
-              <span className="text-sm text-gray-500">Built for students, by education enthusiasts.</span>
-              <p className="text-xs text-gray-600">
-                Disclaimer: Global Scholarship Hub is an information platform. We do not guarantee eligibility or acceptance. Always verify requirements with official providers.
-              </p>
-            </div>
+              </li>
+              <li>
+                <span className="text-sm text-gray-400">Global (Online)</span>
+              </li>
+            </ul>
           </div>
+        </Grid>
+
+        <div className="flex flex-col items-center gap-4 py-6 text-center sm:flex-row sm:items-center sm:text-left">
+          <p className="text-sm text-gray-400">
+            © 2026 Global Scholarship Hub. All rights reserved.
+          </p>
+          <span className="text-sm text-gray-400">Built for students, by education enthusiasts.</span>
+          <p className="text-xs text-gray-500">
+            Disclaimer: Global Scholarship Hub is an information platform. We do not guarantee eligibility or acceptance. Always verify requirements with official providers.
+          </p>
         </div>
       </Container>
     </footer>

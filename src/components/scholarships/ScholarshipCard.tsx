@@ -146,11 +146,15 @@ export function ScholarshipCard({
               name={scholarship.countryName ?? undefined}
               size="xs"
             />
-            <span className="truncate">{scholarship.countryName || "Global"}</span>
+            <span className="truncate" title={scholarship.countryName || "Global"}>
+              {scholarship.countryName || "Global"}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2">
-            <span className="truncate">{scholarship.degreeLevels.join(", ")}</span>
+            <span className="truncate" title={scholarship.degreeLevels.join(", ")}>
+              {scholarship.degreeLevels.join(", ")}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 p-2 col-span-2 sm:col-span-1">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, CalendarClock, Inbox, Loader2, UserPlus } from "lucide-react";
 
 import type { AdminNotificationView } from "@/lib/admin-notifications";
+import { fetchAdminNotifications } from "@/app/actions/admin-search-actions";
 import { cn } from "@/lib/utils";
 
 const ICON_BY_TYPE = {
@@ -60,9 +61,8 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/admin/api/notifications", { headers: { Accept: "application/json" } });
-      if (!res.ok) return;
-      const data = (await res.json()) as { items: AdminNotificationView[]; unread: number };
+      const data = await fetchAdminNotifications();
+      if ("error" in data) return;
       setItems(data.items);
       setUnread(data.unread);
       setLoaded(true);

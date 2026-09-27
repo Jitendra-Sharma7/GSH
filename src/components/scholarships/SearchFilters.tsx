@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Filter, RotateCcw } from "lucide-react";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
-import { api } from "@/lib/data/store";
 import type { PublicCountry, PublicField } from "@/lib/data/public";
 
 interface FilterState {
@@ -18,31 +17,22 @@ interface SearchFiltersProps {
   filters: FilterState;
   onChange: (newFilters: FilterState) => void;
   onReset: () => void;
+  /**
+   * Supplied by the server page from published records, so an option an editor
+   * unpublishes disappears from the filter instead of returning an empty result
+   * set. Passed in rather than fetched: the browser does not read the API.
+   */
+  countries: PublicCountry[];
+  fields: PublicField[];
 }
 
 export function SearchFilters({
   filters,
   onChange,
-  onReset
+  onReset,
+  countries,
+  fields
 }: SearchFiltersProps) {
-  // The options come from the published records, so a country an editor
-  // unpublishes disappears from the filter instead of returning an empty
-  // result set. Loaded after mount because this is a client component.
-  const [countries, setCountries] = useState<PublicCountry[]>([]);
-  const [fields, setFields] = useState<PublicField[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    void Promise.all([api.getCountries(), api.getFields()]).then(([c, f]) => {
-      if (!active) return;
-      setCountries(c);
-      setFields(f);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const germany = countries.find((c) => c.id === "de");
   const computerScience = fields.find((f) => f.id === "cs");
 

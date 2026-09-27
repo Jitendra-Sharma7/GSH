@@ -6,14 +6,15 @@ import { CheckCircle2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { SUBMISSION_TYPE_LABELS } from "@/lib/validations/submission";
+import { submitScholarship } from "@/app/actions/submission-actions";
 
 /**
  * Submission form.
  *
- * Posts to the public intake endpoint and reports what the server actually
- * decided. There is no simulated delay and no optimistic success state: telling
- * someone their submission reached the review queue when it did not is worse
- * than an error message.
+ * Submits through a server action rather than the public JSON route, and
+ * reports what the server actually decided. There is no simulated delay and no
+ * optimistic success state: telling someone their submission reached the review
+ * queue when it did not is worse than an error message.
  */
 
 interface CountryOption {
@@ -70,41 +71,30 @@ export function SubmitScholarshipForm({ countries }: { countries: CountryOption[
     setFieldErrors({});
 
     try {
-      const response = await fetch("/api/public/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: form.type,
-          title: form.title,
-          submitterName: form.submitterName,
-          submitterEmail: form.submitterEmail,
-          officialUrl: form.officialUrl,
-          countryName: form.countryName,
-          description: form.description,
-          deadline: form.deadline,
-          fundingAmount: form.fundingAmount,
-          currency: form.currency,
-          degreeLevels: form.degreeLevels,
-        }),
+      const data = await submitScholarship({
+        type: form.type,
+        title: form.title,
+        submitterName: form.submitterName,
+        submitterEmail: form.submitterEmail,
+        officialUrl: form.officialUrl,
+        countryName: form.countryName,
+        description: form.description,
+        deadline: form.deadline,
+        fundingAmount: form.fundingAmount,
+        currency: form.currency,
+        degreeLevels: form.degreeLevels,
       });
 
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        message?: string;
-        id?: string;
-        fieldErrors?: Record<string, string>;
-      };
-
-      if (!response.ok) {
+      if (!data.ok) {
         setFieldErrors(data.fieldErrors ?? {});
-        toast.error(data.error ?? "Your submission could not be sent. Please try again.");
+        toast.error(data.error);
         return;
       }
 
-      setResult({ id: data.id ?? "", message: data.message ?? "Submission received." });
+      setResult({ id: data.id, message: data.message });
       toast.success("Submission received.");
     } catch {
-      // A network failure must not read as a queued submission.
+      // A failed call must not read as a queued submission.
       toast.error("We could not reach the server. Your submission was not sent.");
     } finally {
       setLoading(false);

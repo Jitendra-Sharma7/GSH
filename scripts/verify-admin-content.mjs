@@ -139,8 +139,14 @@ async function fetchUntil(path, predicate, attempts = 8, delayMs = 1000) {
 async function main() {
   let failures = 0;
   let skips = 0;
+  /**
+   * Records one assertion. The detail is only shown for a failure, so a passing
+   * line stays readable; a printed detail on a PASS reads as a complaint and
+   * sends the reader looking for a problem that is not there.
+   */
   const check = (name, ok, detail = "") => {
-    console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  -> " + detail : ""}`);
+    const note = !ok && detail ? `  -> ${detail}` : "";
+    console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note}`);
     if (!ok) failures += 1;
   };
   /**
@@ -522,6 +528,22 @@ async function main() {
       html.includes("scholaratlas") ? "WARNING: stale ScholarAtlas branding present" : ""
     );
     check("no stale ScholarAtlas branding in the markup", !html.includes("ScholarAtlas"));
+
+    // The site mark is an image, so nothing else would notice if it went
+    // missing: the layout would still render, just with a broken image. Assert
+    // the asset actually serves and that both regions reference it.
+    const asset = await fetch(`${BASE}/diploma_hat.png`);
+    check("the site logo asset is served", asset.status === 200, `HTTP ${asset.status}`);
+
+    const header = html.slice(0, html.indexOf("</header>"));
+    const footer = html.slice(html.indexOf("<footer"));
+    check(
+      "the header and footer both show the site logo",
+      header.includes("diploma_hat") && footer.includes("diploma_hat"),
+      !header.includes("diploma_hat")
+        ? "the header has no logo"
+        : "the footer has no logo"
+    );
   }
 
   console.log(

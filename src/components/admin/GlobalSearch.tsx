@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 
 import type { AdminSearchHit } from "@/lib/admin-search";
+import { searchAdminContent } from "@/app/actions/admin-search-actions";
 
 const DEBOUNCE_MS = 250;
 const MIN_CHARS = 2;
@@ -22,8 +23,9 @@ const ENTITY_LABEL: Record<AdminSearchHit["entity"], string> = {
 /**
  * Debounced global search across every content type.
  *
- * Aborts the in-flight request when the query changes so a slow earlier
- * response cannot overwrite a newer one.
+ * Queries go through a server action rather than a JSON route, so the browser
+ * holds no admin API surface. A sequence counter discards a slow earlier
+ * response that would otherwise overwrite a newer one.
  */
 export function GlobalSearch() {
   const router = useRouter();
@@ -31,7 +33,9 @@ export function GlobalSearch() {
   const [hits, setHits] = useState<AdminSearchHit[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+  // Monotonic request id. A server action cannot be aborted, so staleness is
+  // detected here instead of through AbortController.
+  const requestIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   // The keyboard-highlighted result. This drives rendering, so it is state
   // rather than a ref: a ref read during render would not repaint on change.
@@ -59,26 +63,20 @@ export function GlobalSearch() {
       // Set inside the debounce so the spinner appears only once the request is
       // actually going out, not for every keystroke.
       setLoading(true);
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+      const requestId = ++requestIdRef.current;
 
-      try {
-        const res = await fetch(`/admin/api/search?q=${encodeURIComponent(term)}`, {
-          signal: controller.signal,
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("Search failed");
-        const data = (await res.json()) as { hits: AdminSearchHit[] };
-        setHits(data.hits);
-        setOpen(true);
-        setActiveIndex(-1);
-      } catch (error) {
-        // An aborted request is expected and should not surface as an error.
-        if ((error as Error).name !== "AbortError") setHits([]);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
+      const data = await searchAdminContent(term);
+      // A newer keystroke has already superseded this request.
+      if (requestId !== requestIdRef.current) return;
+
+      setLoading(false);
+      if ("error" in data) {
+        setHits([]);
+        return;
       }
+      setHits(data.hits);
+      setOpen(true);
+      setActiveIndex(-1);
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);

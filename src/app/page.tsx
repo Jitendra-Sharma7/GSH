@@ -1,10 +1,6 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  Search,
   ArrowRight,
   ShieldCheck,
   CheckCircle2
@@ -12,53 +8,30 @@ import {
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
-import { api } from "@/lib/data/store";
-import type { PublicCountry, PublicField, PublicScholarship, PublicStats } from "@/lib/data/public";
+import { HomeSearchForm } from "@/app/HomeSearchForm";
+import { DeadlineAlertsSignup } from "@/app/DeadlineAlertsSignup";
+import {
+  getPublicCountries,
+  getPublicFields,
+  getPublicScholarships,
+  getPublicStats,
+} from "@/lib/data/public";
 
-export default function HomePage() {
-  const router = useRouter();
-  const [featuredScholarships, setFeaturedScholarships] = useState<PublicScholarship[]>([]);
-  const [fullyFundedList, setFullyFundedList] = useState<PublicScholarship[]>([]);
-  const [countries, setCountries] = useState<PublicCountry[]>([]);
-  const [fields, setFields] = useState<PublicField[]>([]);
-  const [stats, setStats] = useState<PublicStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Search Bar State
-  const [studyField, setStudyField] = useState("");
-  const [degreeLevel, setDegreeLevel] = useState("");
-  const [destinationCountry, setDestinationCountry] = useState("");
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [featured, fullyFunded, countryList, fieldList, headlineStats] = await Promise.all([
-          api.getScholarships({ limit: 6 }),
-          api.getScholarships({ funding: "fully-funded", limit: 3 }),
-          api.getCountries(),
-          api.getFields(),
-          api.getStats(),
-        ]);
-        setFeaturedScholarships(featured.data);
-        setFullyFundedList(fullyFunded.data);
-        setCountries(countryList);
-        setFields(fieldList);
-        setStats(headlineStats);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
-
-  const handleHeroSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (studyField) params.set("field", studyField);
-    if (degreeLevel) params.set("degree", degreeLevel);
-    if (destinationCountry) params.set("country", destinationCountry);
-    router.push(`/scholarships?${params.toString()}`);
-  };
+/**
+ * The homepage is entirely static content apart from the hero search, so it
+ * renders on the server: every count, list, and headline figure is read from
+ * published records here and handed to the one client component on the page.
+ */
+export default async function HomePage() {
+  const [featured, fullyFunded, countries, fields, stats] = await Promise.all([
+    getPublicScholarships({ limit: 6 }),
+    getPublicScholarships({ funding: "fully-funded", limit: 3 }),
+    getPublicCountries(),
+    getPublicFields(),
+    getPublicStats(),
+  ]);
+  const featuredScholarships = featured.data;
+  const fullyFundedList = fullyFunded.data;
 
   const popularSearches = [
     { label: "Fully Funded Scholarships", href: "/scholarships?funding=fully-funded" },
@@ -119,83 +92,7 @@ export default function HomePage() {
 
           {/* Large Hero Search Bar */}
           <div className="mx-auto mt-12 max-w-4xl">
-            <form
-              onSubmit={handleHeroSearch}
-              className="rounded-2xl border border-gray-200 bg-white p-3 shadow-xl sm:p-4"
-            >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {/* Field of Study */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
-                    What do you want to study?
-                  </label>
-                  <select
-                    value={studyField}
-                    onChange={(e) => setStudyField(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
-                  >
-                    <option value="">Any Field of Study</option>
-                    {fields.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Degree Level */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
-                    Study Level
-                  </label>
-                  <select
-                    value={degreeLevel}
-                    onChange={(e) => setDegreeLevel(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
-                  >
-                    <option value="">All Degree Levels</option>
-                    <option value="Undergraduate">Undergraduate / Bachelor&apos;s</option>
-                    <option value="Master's">Master&apos;s / Postgraduate</option>
-                    <option value="PhD">PhD / Doctorate</option>
-                    <option value="Postdoctoral">Postdoctoral</option>
-                  </select>
-                </div>
-
-                {/* Destination Country */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
-                    Destination
-                  </label>
-                  <select
-                    value={destinationCountry}
-                    onChange={(e) => setDestinationCountry(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
-                  >
-                    <option value="">Any Destination Country</option>
-                    {countries.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between pt-2 border-t border-gray-100">
-                <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span>Only official & verified scholarship opportunities listed</span>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-700"
-                >
-                  <Search className="h-4 w-4" />
-                  Search Scholarships
-                </button>
-              </div>
-            </form>
+            <HomeSearchForm countries={countries} fields={fields} />
 
             {/* Popular Search Tags */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -220,7 +117,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
             <div>
               <p className="text-3xl font-extrabold text-primary-600">
-                {stats ? stats.openScholarships.toLocaleString() : "—"}
+                {stats.openScholarships.toLocaleString()}
               </p>
               <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Open Scholarships
@@ -228,7 +125,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-3xl font-extrabold text-gray-900">
-                {stats ? stats.countries : "—"}
+                {stats.countries}
               </p>
               <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Destinations Worldwide
@@ -236,7 +133,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-3xl font-extrabold text-emerald-600">
-                {stats ? stats.universities : "—"}
+                {stats.universities}
               </p>
               <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Universities Listed
@@ -244,7 +141,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-3xl font-extrabold text-indigo-600">
-                {stats ? `${stats.verifiedShare}%` : "—"}
+                {`${stats.verifiedShare}%`}
               </p>
               <p className="mt-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Verified Recently
@@ -277,11 +174,9 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-72 rounded-2xl bg-gray-100 animate-pulse" />
-              ))}
+          {featuredScholarships.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center text-sm text-gray-500">
+              No published scholarships yet.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -436,7 +331,10 @@ export default function HomePage() {
                     className="shadow-sm"
                   />
                 </div>
-                <h3 className="font-bold text-gray-900 group-hover:text-primary-600 text-sm truncate">
+                {/* Clamped rather than truncated: at two columns wide on a phone
+                    a country name like "United Arab Emirates" would otherwise
+                    be cut off with no way to read it. */}
+                <h3 className="line-clamp-2 leading-tight font-bold text-gray-900 group-hover:text-primary-600 text-sm">
                   {c.name}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">{c.scholarshipCount} scholarships</p>
@@ -477,7 +375,7 @@ export default function HomePage() {
                 className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 transition-all hover:border-primary-400 hover:bg-primary-50/30 shadow-xs"
               >
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-sm text-gray-900 group-hover:text-primary-700 truncate">
+                  <h3 className="line-clamp-2 leading-tight font-semibold text-sm text-gray-900 group-hover:text-primary-700">
                     {f.name}
                   </h3>
                   <p className="text-xs text-gray-500">{f.scholarshipCount} programs</p>
@@ -575,29 +473,7 @@ export default function HomePage() {
             <p className="mt-3 text-sm text-gray-400 leading-relaxed">
               Receive weekly curated alerts tailored to your citizenship, desired study level, and target destination.
             </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Thank you for subscribing! You will receive verified scholarship updates.");
-              }}
-              className="mt-6 flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-            >
-              <input
-                type="email"
-                required
-                placeholder="Enter your email address"
-                className="w-full rounded-xl bg-gray-800 border border-gray-700 px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-              />
-              <button
-                type="submit"
-                className="rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 shrink-0"
-              >
-                Subscribe
-              </button>
-            </form>
-            <p className="mt-3 text-xs text-gray-500">
-              No spam. Unsubscribe anytime with 1-click.
-            </p>
+            <DeadlineAlertsSignup />
           </div>
         </Container>
       </section>

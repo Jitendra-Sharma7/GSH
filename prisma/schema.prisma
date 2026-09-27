@@ -151,9 +151,35 @@ model User {
   activity          ActivityLog[]
   reviewedSubmissions Submission[] @relation("SubmissionReviewer")
   submittedItems    Submission[]   @relation("SubmissionAuthor")
+  oauthAccounts     AuthAccount[]
 
   @@index([role])
   @@index([createdAt])
+}
+
+/**
+ * A sign-in identity from an external provider.
+ *
+ * The User row is the account; this table records which Google or Apple identity
+ * is allowed to sign in to it. Keeping the provider identifier separate from the
+ * email is deliberate: a provider is the authority for the identity, and the
+ * email is only a display attribute that the user can change.
+ *
+ * `password` stays null for an account created this way, which is why the
+ * password column on User is already optional.
+ */
+model AuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {

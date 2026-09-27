@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Bookmark, Layers, MapPin, GraduationCap, DollarSign, ShieldCheck, CheckCircle2, FileText, Clock, Send, Building, Check, X } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlag } from "@/components/ui/CountryFlag";
-import { api } from "@/lib/data/store";
+import { fetchPublicScholarship } from "@/app/actions/public-actions";
 import type { PublicScholarship } from "@/lib/data/public";
 import { useStore } from "@/lib/store/useStore";
 import { formatDate, formatDateLong, getVerificationBadge } from "@/lib/utils";
@@ -33,16 +33,16 @@ export default function ScholarshipDetailsClient({
   // for a client-side navigation to another id.
   const [settledId, setSettledId] = useState<string | null>(null);
 
-  // Refetch only if the client ever navigates between records without the
-  // server re-rendering (for example after a client-side push).
+  // Re-resolve only if the client ever navigates between records without the
+  // server re-rendering (for example after a client-side push). This goes
+  // through a server action, not the public JSON route.
   useEffect(() => {
     if (initialScholarship) return;
     if (!id) return;
     let cancelled = false;
-    api
-      .getScholarshipById(id)
+    fetchPublicScholarship(id)
       .then((data) => {
-        if (!cancelled) setScholarship(data ?? null);
+        if (!cancelled) setScholarship(data);
       })
       .catch(() => {
         if (!cancelled) setScholarship(null);

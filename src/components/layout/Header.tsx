@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { SiteLogo } from "@/components/layout/SiteLogo";
 import { Container, Flex } from "@/components/layout/Layout";
 import { useStore } from "@/lib/store/useStore";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,27 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // A route change can happen without a tap on one of the menu links (a redirect
+  // after sign-in, the browser back button), which used to leave the panel open
+  // over the page the user just asked for. Adjusting during render is React's
+  // documented way to react to a changed input without an extra commit.
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    setIsMobileMenuOpen(false);
+  }
+
+  // Stop the page behind the panel scrolling under the user's thumb. Without
+  // this, the open menu scrolls away and the links at its bottom are hard to reach.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isMobileMenuOpen]);
+
   const handleLogout = () => {
     logout();
     setIsMobileMenuOpen(false);
@@ -54,13 +76,10 @@ export function Header() {
     >
       <Container>
         <Flex justify="between" align="center" className="h-16 lg:h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg">
-              GSH
-            </div>
-            <span className="text-xl font-bold text-gray-900">Global Scholarship Hub</span>
-          </Link>
+          {/* Logo. The wordmark drops below `sm` on its own, because the full
+              lockup plus the account controls and the menu toggle overflow a
+              320-390px screen. */}
+          <SiteLogo tone="dark" size={40} />
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 lg:flex">
@@ -111,23 +130,21 @@ export function Header() {
                 </button>
               </Flex>
             ) : (
-              <Flex align="center" gap="2">
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button variant="primary" size="sm">
-                    Get Started
-                  </Button>
-                </Link>
-              </Flex>
+              /* One door, not two. "Get Started" opens registration, and that
+                 page already offers "Already have an account? Sign in", so a
+                 separate Sign In button in the bar only duplicated it. */
+              <Link href="/auth/register">
+                <Button variant="primary" size="sm">
+                  Get Started
+                </Button>
+              </Link>
             )}
             <button
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
+              className="-mr-2 rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -136,8 +153,8 @@ export function Header() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden">
-            <div className="space-y-1 border-t border-gray-200 py-4">
+          <div id="mobile-nav" className="lg:hidden">
+            <div className="max-h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto border-t border-gray-200 py-4 lg:max-h-none">
               {navItems.map((item) => {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                 return (
@@ -169,18 +186,11 @@ export function Header() {
                     </Button>
                   </>
                 ) : (
-                  <>
-                    <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full">
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="primary" className="w-full">
-                        Get Started
-                      </Button>
-                    </Link>
-                  </>
+                  <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="primary" className="w-full">
+                      Get Started
+                    </Button>
+                  </Link>
                 )}
               </div>
             </div>

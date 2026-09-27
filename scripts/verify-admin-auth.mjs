@@ -40,8 +40,14 @@ function absorb(res) {
 
 async function main() {
   let failures = 0;
+  /**
+   * Records one assertion. The detail is only shown for a failure, so a passing
+   * line stays readable; a printed detail on a PASS reads as a complaint and
+   * sends the reader looking for a problem that is not there.
+   */
   const check = (name, ok, detail = "") => {
-    console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  -> " + detail : ""}`);
+    const note = !ok && detail ? `  -> ${detail}` : "";
+    console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note}`);
     if (!ok) failures += 1;
   };
 

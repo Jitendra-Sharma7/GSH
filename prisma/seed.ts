@@ -16,6 +16,7 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { seedCountries } from "./seed-data/countries";
+import { countryReference } from "./seed-data/country-reference";
 import { seedFields } from "./seed-data/fields";
 import { seedUniversities } from "./seed-data/universities";
 import { seedProviders } from "./seed-data/providers";
@@ -125,8 +126,51 @@ async function persistCountries() {
     });
     n += 1;
   }
-  console.log(`  countries: ${n}`);
-  return n;
+
+  // The 20 editorial country records above carry the prose (description, costs,
+  // visa notes, universities). The ISO reference list fills in the rest of the
+  // world with objective facts only -- name, ISO codes, capital, continent,
+  // currency -- so nothing below invents guidance that a real source has not
+  // confirmed. Editorial fields are never overwritten here.
+  const existingCodes = new Set(seedCountries.map((c) => c.code.toUpperCase()));
+  let referenceOnly = 0;
+  for (const ref of countryReference) {
+    if (existingCodes.has(ref.code.toUpperCase())) continue;
+    const id = ref.code.toLowerCase();
+    const slug = await uniqueSlug(
+      async (s) => (await prisma.country.findUnique({ where: { slug: s } })) !== null,
+      slugify(ref.name)
+    );
+    await prisma.country.upsert({
+      where: { id },
+      update: {
+        code3: ref.code3,
+        capital: ref.capital,
+        continent: ref.continent,
+        currency: ref.currency,
+      },
+      create: {
+        id,
+        name: ref.name,
+        code: ref.code,
+        code3: ref.code3,
+        slug,
+        capital: ref.capital,
+        continent: ref.continent,
+        currency: ref.currency,
+        region: ref.continent,
+        flag: null,
+        description: null,
+        popularUniversities: [],
+        publishStatus: "PUBLISHED",
+        includeInSitemap: true,
+      },
+    });
+    referenceOnly += 1;
+  }
+
+  console.log(`  countries: ${n} editorial + ${referenceOnly} ISO reference`);
+  return n + referenceOnly;
 }
 
 async function persistFields() {

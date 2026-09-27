@@ -6,36 +6,27 @@ import { Layers, X, ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import { useStore } from "@/lib/store/useStore";
-import { api } from "@/lib/data/store";
-import type { PublicCountry, PublicScholarship } from "@/lib/data/public";
+import { fetchPublicScholarshipsByIds } from "@/app/actions/public-actions";
+import type { PublicScholarship } from "@/lib/data/public";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 export default function ComparePage() {
   const { compareIds, toggleCompare, clearCompare } = useStore();
   const [scholarships, setScholarships] = useState<PublicScholarship[]>([]);
-  const [countries, setCountries] = useState<PublicCountry[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    void api.getCountries().then((list) => {
-      if (active) setCountries(list);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
     async function load() {
-      const loaded = await Promise.all(compareIds.map((id) => api.getScholarshipById(id)));
+      if (compareIds.length === 0) {
+        setScholarships([]);
+        return;
+      }
+      const loaded = await fetchPublicScholarshipsByIds(compareIds);
       if (!active) return;
-      setScholarships(loaded.filter((s): s is PublicScholarship => s !== undefined));
+      setScholarships(loaded);
     }
-    if (compareIds.length > 0) {
-      load();
-    }
+    void load();
     return () => {
       active = false;
     };
@@ -79,10 +70,11 @@ export default function ComparePage() {
       key: "country",
       label: "Destination Country",
       render: (s) => {
-        if (!s.countryId) return "Global / multiple";
-        const c = countries.find((x) => x.id === s.countryId);
-        if (!c) return s.countryName ?? "Global / multiple";
-        return <CountryFlagWithName code={c.code} name={c.name} size="sm" />;
+        // The record carries its own country snapshot, so no directory lookup
+        // is needed - and nothing is shown that the record does not state.
+        if (!s.countryId) return s.countryName ?? "Global / multiple";
+        if (!s.countryCode) return s.countryName ?? "Global / multiple";
+        return <CountryFlagWithName code={s.countryCode} name={s.countryName ?? "Unknown"} size="sm" />;
       },
     },
     { key: "degrees", label: "Degree Levels", render: (s) => s.degreeLevels.join(", ") || notStated },

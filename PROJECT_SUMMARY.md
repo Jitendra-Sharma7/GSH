@@ -81,23 +81,56 @@ src/
   no slug redirects either.
 - Public pages read the database. There is no mock data in the runtime path:
   the seed datasets under `prisma/seed-data/` are imported by the seed only.
+- The browser never calls `/api/*`. A client component gets its data from a
+  server parent, or - when the data is not knowable at request time, such as the
+  comparison list or a freshly requested match - from a server action in
+  `app/actions/`. The JSON routes remain for external consumers and the
+  verification scripts.
+- Client components may import *types* from a server module but never a value.
+  A value import drags the module - and Prisma - into the browser bundle, which
+  `verify:bundle` catches.
 
 ## Verification
 
-Four scripts exercise the running server over real HTTP, including server
-actions and the rendered forms a browser would post.
+Six scripts: five drive the running server over real HTTP, and one reads the
+build output.
 
 ```bash
-npm run verify            # all four, in order
+npm run verify            # bundle check, then all six HTTP suites, in order
+npm run verify:bundle     # no server-only code in the browser bundle
 npm run verify:auth       # session boundary, roles, logout
 npm run verify:content    # registry CRUD, publishing, submissions,
                           # settings, public visibility
 npm run verify:crud       # scholarship create/edit/publish/trash
 npm run verify:public     # admin edits reach the public pages
+npm run verify:forms      # every form refuses bad input and says why
+npm run verify:mobile     # sideways scroll, mobile nav, touch targets
 ```
 
 They need `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the environment and a server on
-`http://localhost:3000`.
+`http://localhost:3000`. `verify:bundle` reads `.next/static/chunks` and needs
+`npm run build` first.
+
+`verify:mobile` covers what a desktop screenshot cannot show, and every check in
+it corresponds to something that was actually wrong here: the header's brand
+lockup plus auth buttons plus menu toggle overflowed a 320-390px screen, the
+open mobile menu let the page scroll underneath it and did not say whether it
+was open, the browse filter toggle was a 30px target guarding the whole
+filtering experience, and country and field names were truncated to
+unreadability in two-column phone grids. Its checks are deliberately few and
+specific. A blanket "no multi-column grid" rule would fire on the stat tiles,
+which are correctly two abreast on a phone, so a noisier rule would have been
+ignored instead of maintained.
+
+`verify:forms` exists because the public sign-in and registration pages once
+accepted any email and any password, waited 800ms in the browser, and reported
+success without a server being involved. Nothing about that looked broken in a
+screenshot. Each check now asserts that the server refuses bad input *and* names
+the offending field, which is the part a bare "it returned an error" check would
+have missed. The public forms call their actions from a transition, so they have
+no `<form action>` to replay; their rules are the ones in `signIn` and `signUp`,
+and `verify:forms` exercises those through the form-based admin login, which
+delegates to the same functions.
 
 Because they drive the real admin UI, a run creates real rows. `npm run
 clean:test-records` removes everything the suites created, including the

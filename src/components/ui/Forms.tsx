@@ -26,9 +26,14 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
           className
         )}
         {...props}
+        aria-invalid={error ? true : props["aria-invalid"]}
       />
       {hint && !error && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-1 text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -57,8 +62,13 @@ export function Textarea({ label, error, className, id, ...props }: TextareaProp
           className
         )}
         {...props}
+        aria-invalid={error ? true : props["aria-invalid"]}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-1 text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -88,6 +98,7 @@ export function Select({ label, error, options, className, id, ...props }: Selec
           className
         )}
         {...props}
+        aria-invalid={error ? true : props["aria-invalid"]}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -95,7 +106,11 @@ export function Select({ label, error, options, className, id, ...props }: Selec
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-1 text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

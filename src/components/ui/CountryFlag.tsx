@@ -59,6 +59,29 @@ export function CountryFlag({
         </span>
       );
     }
+
+    // No flag image. Showing an empty grey rectangle reads as a broken image, so
+    // the ISO code is shown in its place instead: still identifying, and it
+    // looks deliberate rather than unfinished.
+    if (code) {
+      return (
+        <span
+          role={name ? "img" : undefined}
+          aria-label={name ? `${name}, code ${code}` : undefined}
+          aria-hidden={name ? undefined : true}
+          title={name}
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-sm border border-gray-300 bg-gray-100 font-semibold uppercase leading-none text-gray-600",
+            cls,
+            className
+          )}
+          style={{ fontSize: Math.max(8, Math.round(px * 0.42)) }}
+        >
+          {code}
+        </span>
+      );
+    }
+
     return (
       <span
         aria-hidden="true"
@@ -74,7 +97,7 @@ export function CountryFlag({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/flags/${code.toLowerCase()}.png`}
+      src={`/flags/${code.toLowerCase()}.svg`}
       alt={alt}
       title={name}
       width={Math.round((px * 4) / 3)}

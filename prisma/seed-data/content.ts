@@ -421,7 +421,7 @@ export const posts: PostData[] = [
     category: "Application Tips",
     excerpt:
       "A five-minute check that catches most unreliable listings before you spend an evening on a doomed application.",
-    author: "ScholarAtlas Editorial",
+    author: "Global Scholarship Hub Editorial",
     published: "2026-09-10",
     readMinutes: 6,
     sections: [
@@ -453,7 +453,7 @@ export const posts: PostData[] = [
     category: "Scholarship Guides",
     excerpt:
       "Why large search lists fail, and a smaller system built around tiers, deadlines, and a fixed weekly review.",
-    author: "ScholarAtlas Editorial",
+    author: "Global Scholarship Hub Editorial",
     published: "2026-09-03",
     readMinutes: 7,
     sections: [
@@ -486,7 +486,7 @@ export const posts: PostData[] = [
     category: "Financial Aid",
     excerpt:
       "Fully funded, partial tuition, stipend, and travel grant are not interchangeable. What each one actually leaves you to pay.",
-    author: "ScholarAtlas Editorial",
+    author: "Global Scholarship Hub Editorial",
     published: "2026-08-27",
     readMinutes: 6,
     sections: [

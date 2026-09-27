@@ -14,8 +14,14 @@ if (!EMAIL || !PASSWORD) {
 
 let cookie = "";
 let failures = 0;
+/**
+ * Records one assertion. The detail is only shown for a failure, so a passing
+ * line stays readable; a printed detail on a PASS reads as a complaint and
+ * sends the reader looking for a problem that is not there.
+ */
 const check = (name, ok, detail = "") => {
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  -> " + detail : ""}`);
+  const note = !ok && detail ? `  -> ${detail}` : "";
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note}`);
   if (!ok) failures += 1;
 };
 
@@ -184,9 +190,14 @@ async function main() {
 
     const home = await (await fetch(`${BASE}/`)).text();
     check("the homepage shows the counted figure", home.includes(String(stats.openScholarships)));
-    check("the homepage drops the old 1,200+ claim", !home.includes("1,200"));
-    check("the homepage drops the old 85+ claim", !home.includes("85+"));
-    check("the homepage drops the old $45M+ claim", !home.includes("45M"));
+
+    // Match the marketing claim, not a bare number. The homepage now renders on
+    // the server, so real record data is serialised into the payload - and a
+    // country living-cost figure like "EUR 850 - EUR 1,200 / month" would trip a
+    // naive check for "1,200" without being a claim about scholarship volume.
+    for (const claim of ["1,200+", "85+", "45M"]) {
+      check(`the homepage drops the old ${claim} claim`, !home.includes(claim));
+    }
   }
 
   // --- 4. Directories are served from the database ------------------------

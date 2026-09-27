@@ -10,7 +10,7 @@ import {
   destroySession,
 } from "@/lib/auth";
 import { recordActivity, recordLoginFailure } from "@/lib/audit";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, clearRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 
 export interface ActionState {
@@ -29,25 +29,41 @@ function safeNextPath(next: string | undefined): string {
   return next;
 }
 
-export async function loginAction(
-  _prev: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const next = safeNextPath(String(formData.get("next") ?? "") || undefined);
+export interface SignInResult extends ActionState {
+  ok?: boolean;
+  email?: string;
+  name?: string;
+  next?: string;
+}
+
+/**
+ * The sign-in check itself, with no redirect.
+ *
+ * Separated from `loginAction` because a client component that calls an action
+ * programmatically needs to know the outcome before it navigates. The redirect
+ * lives in the wrapper, which `useActionState` drives from a rendered form.
+ */
+export async function signIn(input: {
+  email: string;
+  password: string;
+  next?: string;
+}): Promise<SignInResult> {
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const password = String(input.password ?? "");
+  const next = safeNextPath(input.next);
 
   const fieldErrors: Record<string, string> = {};
   if (!email) fieldErrors.email = "Email is required.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fieldErrors.email = "Enter a valid email address.";
+  }
   if (!password) fieldErrors.password = "Password is required.";
   if (Object.keys(fieldErrors).length) return { fieldErrors };
 
   const limit = await rateLimit(`login:${email}`, MAX_LOGIN_ATTEMPTS);
   if (!limit.allowed) {
     await recordLoginFailure(email, "rate limited");
-    return {
-      error: `Too many attempts. Try again in ${limit.retryAfter} seconds.`,
-    };
+    return { error: `Too many attempts. Try again in ${limit.retryAfter} seconds.` };
   }
 
   const result = await authenticateUser(email, password);
@@ -56,6 +72,7 @@ export async function loginAction(
     return { error: result.error ?? "Incorrect email or password." };
   }
 
+  await clearRateLimit(`login:${email}`);
   await createSession(result.user.id);
   await recordActivity({
     action: "auth.login",
@@ -65,21 +82,30 @@ export async function loginAction(
     actor: { id: result.user.id, email: result.user.email },
   });
 
-  redirect(next);
+  return { ok: true, email: result.user.email, name: result.user.name ?? "", next };
 }
 
-export async function logoutAction(): Promise<void> {
-  await destroySession();
-  redirect("/admin/login");
+export interface SignUpResult extends ActionState {
+  ok?: boolean;
+  email?: string;
+  name?: string;
 }
 
-export async function registerAction(
-  _prev: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
+/**
+ * Account creation itself, with no redirect.
+ *
+ * Validates on the server, refuses a duplicate address, and stores a bcrypt
+ * hash rather than the password. The public registration form calls this
+ * directly; `registerAction` wraps it for the rendered form.
+ */
+export async function signUp(input: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<SignUpResult> {
+  const name = String(input.name ?? "").trim();
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const password = String(input.password ?? "");
 
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = "Name is required.";
@@ -97,8 +123,52 @@ export async function registerAction(
   }
 
   const created = await createUser({ name, email, password });
-  if (!created.ok) return { error: created.error ?? "Could not create the account." };
+  if (!created.ok) {
+    // A duplicate address is a field problem, not a form-level failure, so it
+    // is reported next to the input rather than as a banner.
+    if (/already exists/i.test(created.error ?? "")) {
+      return { fieldErrors: { email: created.error ?? "An account with that email already exists." } };
+    }
+    return { error: created.error ?? "Could not create the account." };
+  }
 
+  return { ok: true, email, name };
+}
+
+export async function loginAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const result = await signIn({
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    next: String(formData.get("next") ?? "") || undefined,
+  });
+
+  if (!result.ok) {
+    return { error: result.error, fieldErrors: result.fieldErrors };
+  }
+  redirect(result.next ?? "/admin/dashboard");
+}
+
+export async function logoutAction(): Promise<void> {
+  await destroySession();
+  redirect("/admin/login");
+}
+
+export async function registerAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const result = await signUp({
+    name: String(formData.get("name") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
+
+  if (!result.ok) {
+    return { error: result.error, fieldErrors: result.fieldErrors };
+  }
   redirect("/auth/login?registered=1");
 }
 
