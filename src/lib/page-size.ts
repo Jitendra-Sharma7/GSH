@@ -11,3 +11,9 @@ export const SCHOLARSHIP_PAGE_SIZE = 9;
 
 /** Countries per page in the countries directory. */
 export const COUNTRY_PAGE_SIZE = 12;
+
+/** Universities per page in the university directory. */
+export const UNIVERSITY_PAGE_SIZE = 12;
+
+/** Fields of study per page in the fields directory. */
+export const FIELD_PAGE_SIZE = 9;

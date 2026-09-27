@@ -1,23 +1,35 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
+import { Pagination } from "@/components/ui/Pagination";
 import { ScholarshipCard } from "@/components/scholarships/ScholarshipCard";
+import { SCHOLARSHIP_PAGE_SIZE } from "@/lib/page-size";
 import type { PublicScholarship } from "@/lib/data/public";
 
 /**
  * Client half of /fully-funded.
  *
  * The list is fetched on the server and handed in as a prop, so the page shows
- * real records on first paint and honours whatever the admin has published.
+ * real records on first paint and honours whatever the admin has published. The
+ * cards are then paged in the browser, like the country, university and field
+ * directories, so the page stays server-rendered rather than hiding its records
+ * behind a client fetch.
  */
 export default function FullyFundedClient({
   scholarships,
 }: {
   scholarships: PublicScholarship[];
 }) {
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(scholarships.length / SCHOLARSHIP_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * SCHOLARSHIP_PAGE_SIZE;
+  const visible = scholarships.slice(start, start + SCHOLARSHIP_PAGE_SIZE);
+
   return (
     <div className="bg-gray-50/50 min-h-screen py-10">
       <Container>
@@ -50,10 +62,21 @@ export default function FullyFundedClient({
         </div>
 
         {/* List of Fully Funded Opportunities */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold text-gray-900">
             {scholarships.length} Fully Funded Program{scholarships.length === 1 ? "" : "s"} Available
           </h2>
+          <p className="text-sm text-gray-600" role="status">
+            {scholarships.length > 0 && (
+              <>
+                Showing {start + 1}&ndash;{Math.min(start + SCHOLARSHIP_PAGE_SIZE, scholarships.length)}{" "}
+                of {scholarships.length}
+              </>
+            )}
+          </p>
+        </div>
+
+        <div className="mb-6">
           <Link
             href="/finder"
             className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
@@ -79,11 +102,20 @@ export default function FullyFundedClient({
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scholarships.map((sch) => (
-              <ScholarshipCard key={sch.id} scholarship={sch} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visible.map((sch) => (
+                <ScholarshipCard key={sch.id} scholarship={sch} />
+              ))}
+            </div>
+
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              label="Fully funded program pages"
+            />
+          </>
         )}
       </Container>
     </div>

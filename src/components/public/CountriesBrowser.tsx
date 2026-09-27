@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight } from "lucide-react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Pagination } from "@/components/ui/Pagination";
 import { COUNTRY_PAGE_SIZE } from "@/lib/page-size";
 import type { PublicCountry } from "@/lib/data/public";
 
-/** Cards shown per page. Twelve fills three columns without a long scroll. */
 const PER_PAGE = COUNTRY_PAGE_SIZE;
 
 function uniqueRegions(countries: PublicCountry[]): string[] {
@@ -55,27 +55,6 @@ export function CountriesBrowser({ countries }: { countries: PublicCountry[] }) 
     setRegion(value);
     setPage(1);
   };
-
-  /** Page numbers with ellipses, e.g. 1 … 4 5 6 … 20. */
-  const pageNumbers = useMemo(() => {
-    const out: (number | "gap")[] = [];
-    const add = (n: number) => {
-      if (out[out.length - 1] !== n) out.push(n);
-    };
-    add(1);
-    for (let n = safePage - 1; n <= safePage + 1; n += 1) {
-      if (n > 1 && n < totalPages) add(n);
-    }
-    if (totalPages > 1) add(totalPages);
-    const withGaps: (number | "gap")[] = [];
-    out.forEach((n, i) => {
-      if (i > 0 && typeof n === "number" && typeof out[i - 1] === "number" && n - (out[i - 1] as number) > 1) {
-        withGaps.push("gap");
-      }
-      withGaps.push(n);
-    });
-    return withGaps;
-  }, [safePage, totalPages]);
 
   return (
     <>
@@ -187,51 +166,12 @@ export function CountriesBrowser({ countries }: { countries: PublicCountry[] }) 
             ))}
           </div>
 
-          {totalPages > 1 && (
-            <nav
-              aria-label="Country list pages"
-              className="mt-10 flex flex-wrap items-center justify-center gap-1.5"
-            >
-              <button
-                onClick={() => setPage(safePage - 1)}
-                disabled={safePage === 1}
-                aria-label="Previous page"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              {pageNumbers.map((n, i) =>
-                n === "gap" ? (
-                  <span key={`gap-${i}`} className="px-1.5 text-sm text-gray-400" aria-hidden="true">
-                    &hellip;
-                  </span>
-                ) : (
-                  <button
-                    key={n}
-                    onClick={() => setPage(n)}
-                    aria-current={n === safePage ? "page" : undefined}
-                    className={`min-h-[44px] min-w-[44px] rounded-xl px-3 text-sm font-semibold transition-colors ${
-                      n === safePage
-                        ? "bg-primary-600 text-white"
-                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ),
-              )}
-
-              <button
-                onClick={() => setPage(safePage + 1)}
-                disabled={safePage === totalPages}
-                aria-label="Next page"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </nav>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            label="Country list pages"
+          />
         </>
       )}
     </>

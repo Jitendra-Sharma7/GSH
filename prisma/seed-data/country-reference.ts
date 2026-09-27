@@ -1,7 +1,8 @@
 /**
- * Every sovereign state, with the fields that are objective reference data:
- * the ISO 3166-1 alpha-2 and alpha-3 codes, the capital city, the continent,
- * and the currency code.
+ * Every sovereign state, plus the separately administered destinations that host
+ * international programmes of their own (Hong Kong), with the fields that are
+ * objective reference data: the ISO 3166-1 alpha-2 and alpha-3 codes, the
+ * capital city, the continent, and the currency code.
  *
  * Nothing here is a claim about scholarships. Cost of living, study
  * information, and university highlights are deliberately absent for these
@@ -93,6 +94,7 @@ const ASIA: CountryReference[] = [
   { code: "KH", code3: "KHM", name: "Cambodia", capital: "Phnom Penh", continent: "Asia", currency: "KHR" },
   { code: "CN", code3: "CHN", name: "China", capital: "Beijing", continent: "Asia", currency: "CNY" },
   { code: "GE", code3: "GEO", name: "Georgia", capital: "Tbilisi", continent: "Asia", currency: "GEL" },
+  { code: "HK", code3: "HKG", name: "Hong Kong", capital: "Hong Kong", continent: "Asia", currency: "HKD" },
   { code: "IN", code3: "IND", name: "India", capital: "New Delhi", continent: "Asia", currency: "INR" },
   { code: "ID", code3: "IDN", name: "Indonesia", capital: "Jakarta", continent: "Asia", currency: "IDR" },
   { code: "IR", code3: "IRN", name: "Iran", capital: "Tehran", continent: "Asia", currency: "IRR" },

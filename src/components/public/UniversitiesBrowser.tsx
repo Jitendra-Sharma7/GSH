@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ArrowRight, ExternalLink, Building2 } from "lucide-react";
+import { Pagination } from "@/components/ui/Pagination";
+import { UNIVERSITY_PAGE_SIZE } from "@/lib/page-size";
 import type { PublicUniversity } from "@/lib/data/public";
 
 export function UniversitiesBrowser({ universities }: { universities: PublicUniversity[] }) {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -16,23 +19,50 @@ export function UniversitiesBrowser({ universities }: { universities: PublicUniv
         u.name.toLowerCase().includes(term) ||
         u.country.toLowerCase().includes(term) ||
         (u.city ?? "").toLowerCase().includes(term) ||
-        u.programs.some((p) => p.toLowerCase().includes(term)),
+        u.programs.some((p) => p.toLowerCase().includes(term))
     );
   }, [universities, search]);
 
+  // Narrowing the list while sitting on page 4 would otherwise show an empty
+  // grid, so searching returns to page 1.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / UNIVERSITY_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * UNIVERSITY_PAGE_SIZE;
+  const visible = filtered.slice(start, start + UNIVERSITY_PAGE_SIZE);
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   return (
     <>
-      <div className="mb-8 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <label htmlFor="university-search" className="sr-only">
+            Search universities by name, country, city, or subject
+          </label>
           <input
-            type="text"
+            id="university-search"
+            type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => changeSearch(e.target.value)}
             placeholder="Search universities by name, country, or subject..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-xs shadow-xs focus:border-primary-500 focus:outline-none"
+            className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm shadow-xs focus:border-primary-500 focus:outline-none"
           />
         </div>
+
+        <p className="text-sm text-gray-600" role="status">
+          <span className="font-semibold text-gray-900">{filtered.length}</span>{" "}
+          {filtered.length === 1 ? "university" : "universities"}
+          {filtered.length > 0 && (
+            <span className="text-gray-500">
+              {" "}
+              &middot; showing {start + 1}&ndash;{Math.min(start + UNIVERSITY_PAGE_SIZE, filtered.length)}
+            </span>
+          )}
+        </p>
       </div>
 
       {filtered.length === 0 ? (
@@ -40,8 +70,9 @@ export function UniversitiesBrowser({ universities }: { universities: PublicUniv
           No published universities match your search yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((u) => {
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visible.map((u) => {
             const rank = u.ranking > 0 ? u.ranking : u.qsRanking ?? u.theRanking;
             return (
               <div
@@ -123,8 +154,16 @@ export function UniversitiesBrowser({ universities }: { universities: PublicUniv
                 </div>
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            label="University list pages"
+          />
+        </>
       )}
     </>
   );

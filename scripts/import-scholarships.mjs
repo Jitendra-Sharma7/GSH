@@ -33,7 +33,8 @@
  *   applicationUrl, officialUrl, providerContact
  *   languageReqs, ieltsReq, toeflReq, greReq, gmatReq, otherTestReqs,
  *   academicReqs, selectionCriteria, financialNeedReq
- *   numAwards, region, city, logo, coverImage
+ *   numAwards (numberOfRecipients, numberOfAwards, awards)
+ *   region, city, logo, coverImage
  *   description, shortDescription, seoTitle, seoDescription
  *   sourceUrl                           recorded on the row
  */
@@ -378,7 +379,7 @@ for (const [index, row] of rows.entries()) {
       selectionCriteria: list(pick(row, "selectionCriteria", "criteria")),
       financialNeedReq: truthy(pick(row, "financialNeedReq", "financialNeed")),
 
-      numAwards: int(pick(row, "numAwards", "numberOfAwards", "awards")),
+      numAwards: int(pick(row, "numAwards", "numberOfAwards", "numberOfRecipients", "awards")),
       logo: pick(row, "logo") ?? null,
       coverImage: pick(row, "coverImage") ?? null,
 

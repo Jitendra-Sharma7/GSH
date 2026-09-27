@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
+import { Pagination } from "@/components/ui/Pagination";
+import { FIELD_PAGE_SIZE } from "@/lib/page-size";
 import type { PublicField } from "@/lib/data/public";
 
 function uniqueCategories(fields: PublicField[]): string[] {
@@ -17,6 +20,7 @@ function uniqueCategories(fields: PublicField[]): string[] {
 export function FieldsBrowser({ fields }: { fields: PublicField[] }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [page, setPage] = useState(1);
 
   const categories = useMemo(() => uniqueCategories(fields), [fields]);
 
@@ -29,45 +33,80 @@ export function FieldsBrowser({ fields }: { fields: PublicField[] }) {
     });
   }, [fields, search, category]);
 
+  // Narrowing the list while sitting on page 2 would otherwise show an empty
+  // grid, so search and filter changes return to page 1.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / FIELD_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * FIELD_PAGE_SIZE;
+  const visible = filtered.slice(start, start + FIELD_PAGE_SIZE);
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const changeCategory = (value: string) => {
+    setCategory(value);
+    setPage(1);
+  };
+
   return (
     <>
-      <div className="mb-8 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <label htmlFor="field-search" className="sr-only">
+            Search fields of study
+          </label>
           <input
-            type="text"
+            id="field-search"
+            type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => changeSearch(e.target.value)}
             placeholder="Search field of study..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-4 pr-4 text-xs shadow-xs focus:border-primary-500 focus:outline-none"
+            className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm shadow-xs focus:border-primary-500 focus:outline-none"
           />
         </div>
 
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 self-start sm:self-auto">
-            {["all", ...categories].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
-                  category === cat
-                    ? "bg-primary-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {cat === "all" ? "All Categories" : cat}
-              </button>
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-gray-600" role="status">
+          <span className="font-semibold text-gray-900">{filtered.length}</span>{" "}
+          {filtered.length === 1 ? "field" : "fields"}
+          {filtered.length > 0 && (
+            <span className="text-gray-500">
+              {" "}
+              &middot; showing {start + 1}&ndash;{Math.min(start + FIELD_PAGE_SIZE, filtered.length)}
+            </span>
+          )}
+        </p>
       </div>
+
+      {categories.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-1.5">
+          {["all", ...categories].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => changeCategory(cat)}
+              aria-pressed={category === cat}
+              className={`min-h-[36px] rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                category === cat
+                  ? "bg-primary-600 text-white"
+                  : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {cat === "all" ? "All Categories" : cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500">
           No published fields of study match your search yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((f) => (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visible.map((f) => (
             <div
               key={f.id}
               className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5"
@@ -113,8 +152,16 @@ export function FieldsBrowser({ fields }: { fields: PublicField[] }) {
                 <span>Browse {f.name} Scholarships →</span>
               </Link>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            label="Field list pages"
+          />
+        </>
       )}
     </>
   );
