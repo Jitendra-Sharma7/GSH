@@ -153,7 +153,13 @@ export default function TrackerPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Row-scoped id: the label names the control for assistive
+                        tech, and the id has to be unique per tracked row. */}
+                    <label htmlFor={`tracker-status-${app.id}`} className="sr-only">
+                      Application status for {app.scholarship.title}
+                    </label>
                     <select
+                      id={`tracker-status-${app.id}`}
                       value={app.status}
                       onChange={(e) => handleStatusChange(app.id, e.target.value as ApplicationTrackerItem['status'])}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 ${statusColors[app.status]}`}
@@ -175,9 +181,9 @@ export default function TrackerPage() {
                     <button
                       onClick={() => handleRemove(app.id)}
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                      title="Remove from tracker"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only">Remove {app.scholarship.title} from tracker</span>
                     </button>
                   </div>
                 </div>

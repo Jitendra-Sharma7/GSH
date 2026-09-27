@@ -63,22 +63,57 @@ See `.env.example` for the full list. The ones that matter most:
 - `NEXT_PUBLIC_SITE_URL` — absolute origin for canonical URLs and social cards.
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — read only by the seed, to create the first
   administrator. Create further admins through `/admin/users` instead.
+- `PUBLIC_API_KEY` — shared secret for the read-only JSON API under
+  `/api/public/*`. See [JSON API](#json-api).
 - `RATE_LIMIT_MAX_REQUESTS` / `RATE_LIMIT_WINDOW_MS` — default throttle. Sign-in
   additionally allows 8 attempts per address per minute, and submission intake 5
   per connection per hour.
 
-  Two limits deliberately do not charge for work that was never stored, so a
-  mistake costs a moment rather than an hour of quota:
+## JSON API
 
-  - A **successful** sign-in clears that address's `login` bucket. The limit
-    exists to slow password guessing, which only failures help; charging a
-    correct password let an administrator who mistyped once lock themselves out.
-  - Submission intake **validates first and throttles last**, so a mistyped
-    email is answered with a field error instead of a 429.
+The browser never uses `/api/*`: every public page is a server component that
+reads the database directly, and every form posts through a server action. The
+JSON routes exist for external consumers and the verification scripts, and
+`src/proxy.ts` keeps them away from ordinary visitors.
 
-  The buckets are in module memory, so they reset when the process restarts.
-  That is fine for the single Node process this runs as; a multi-instance
-  deployment needs a shared store.
+`/api/public/*` returns **404** unless the request either comes from the machine
+the app is running on, or presents `PUBLIC_API_KEY`:
+
+```bash
+curl -H "x-api-key: $PUBLIC_API_KEY" https://your-host/api/public/stats
+# Authorization: Bearer $PUBLIC_API_KEY also works
+```
+
+Leaving `PUBLIC_API_KEY` empty therefore keeps the API local-only. Allowed
+responses carry `X-Robots-Tag: noindex, nofollow` and `Cache-Control: private,
+no-store`, and `/api/` is disallowed in `robots.txt`.
+
+`/api/auth/*` is deliberately outside the matcher: the OAuth start and callback
+routes are reached by browser redirect and have to stay open.
+
+## Search engines
+
+`/robots.txt` and `/sitemap.xml` are generated from the same published rows the
+public pages read. The sitemap covers the static pages plus every published
+scholarship, blog post and resource, and never a draft, a deleted record, or a
+route robots.txt disallows. `npm run verify:links` fails if an advertised URL
+does not answer, or if a published record is missing from the list.
+
+## Rate limiting
+
+Sign-in, sign-up, submission intake and admin writes are throttled per address.
+Two limits deliberately do not charge for work that was never stored, so a
+mistake costs a moment rather than an hour of quota:
+
+- A **successful** sign-in clears that address's `login` bucket. The limit
+  exists to slow password guessing, which only failures help; charging a
+  correct password let an administrator who mistyped once lock themselves out.
+- Submission intake **validates first and throttles last**, so a mistyped
+  email is answered with a field error instead of a 429.
+
+The buckets are in module memory, so they reset when the process restarts.
+That is fine for the single Node process this runs as; a multi-instance
+deployment needs a shared store.
 
 ## Social sign-in
 
@@ -145,13 +180,13 @@ conversion; activity log with CSV export; role-gated settings.
 
 ## Verification
 
-Seven scripts exercise a running server over real HTTP, replaying the hidden
+Eight scripts exercise a running server over real HTTP, replaying the hidden
 server-action fields a browser would post, and one reads the build output. They
 need `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the environment and a server on
 `http://localhost:3000`.
 
 ```bash
-npm run verify            # bundle check, then all six HTTP suites, in order
+npm run verify            # bundle check, then all eight HTTP suites, in order
 npm run verify:bundle     # no server-only code in the browser bundle
 npm run verify:auth       # session boundary, roles, logout
 npm run verify:content    # registry CRUD, publishing, submissions,
@@ -159,6 +194,7 @@ npm run verify:content    # registry CRUD, publishing, submissions,
 npm run verify:crud       # create, edit, publish, trash, restore
 npm run verify:public     # admin edits reach the public pages
 npm run verify:forms      # every form refuses bad input and names the field
+npm run verify:links      # every internal link, query link and sitemap URL
 npm run verify:mobile     # no sideways scroll, reachable nav, 44px targets
 npm run verify:oauth      # social sign-in wiring, config gating, CSRF state
 ```
@@ -179,13 +215,12 @@ its full value. Some checks read component source rather than markup, because
 the header's mobile panel and the browse results are only mounted on the client
 and are absent from the server HTML.
 
-`verify:forms` exists because the public sign-in and registration pages once
-accepted any email and any password, waited 800ms in the browser, and reported
-success without a server being involved. Each check asserts the server refuses
-bad input *and* explains which field was wrong. The public forms invoke their
-actions from a transition, so there is no `<form action>` to replay; the same
-`signIn` and `signUp` rules are exercised through the form-based admin login,
-which delegates to those functions.
+`verify:links` crawls the public site, requests every route, query link and
+authenticated admin page, and checks each external link. It also reads
+`/sitemap.xml`: no entry may be a route `robots.txt` disallows, every entry must
+answer 200, and every published scholarship, blog post and resource must appear
+in it. A sitemap is how a record with no inbound link is found at all, so one
+that drifts is a silent loss of traffic rather than a visible bug.
 
 `verify:bundle` is not a formality. Nothing in `src/app` or `src/components`
 calls `/api/*`; a client component gets its data from a server parent or a

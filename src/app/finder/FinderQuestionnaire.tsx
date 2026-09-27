@@ -213,7 +213,11 @@ export function FinderQuestionnaire({
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-gray-900">1. Where are you from? (Country of Citizenship)</h3>
                   <p className="text-xs text-gray-500">Many international scholarships have specific bilateral or regional quotas.</p>
+                  <label htmlFor="finder-citizenship" className="sr-only">
+                    Country of citizenship
+                  </label>
                   <select
+                    id="finder-citizenship"
                     value={formData.citizenship}
                     onChange={(e) => updateField("citizenship", e.target.value)}
                     className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"

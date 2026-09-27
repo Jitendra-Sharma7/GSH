@@ -116,6 +116,7 @@ export default function LoginForm({ providers }: { providers: OAuthProviderId[] 
                 type="email"
                 label="Email address"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -133,6 +134,7 @@ export default function LoginForm({ providers }: { providers: OAuthProviderId[] 
                 name="password"
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={Boolean(errors.password)}
@@ -145,7 +147,7 @@ export default function LoginForm({ providers }: { providers: OAuthProviderId[] 
                 placeholder="••••••••"
               />
               {errors.password && (
-                <p id="password-error" className="mt-1.5 text-xs text-red-600">
+                <p id="password-error" role="alert" className="mt-1.5 text-xs text-red-600">
                   {errors.password}
                 </p>
               )}

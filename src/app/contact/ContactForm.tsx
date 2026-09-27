@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { Mail, MessageSquare, Clock, Send, ShieldQuestion } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
@@ -32,6 +32,8 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  /** Tracks the confirmation panel so focus can follow the form swap. */
+  const submittedRef = useRef<HTMLDivElement | null>(null);
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -47,6 +49,14 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
       next.message = "Please add a little more detail (at least 10 characters).";
     }
     setErrors(next);
+
+    // A failed submit otherwise leaves focus on the button, so nothing tells the
+    // visitor that the form was refused.
+    const first = Object.keys(next)[0];
+    if (first) {
+      requestAnimationFrame(() => document.getElementById(`contact-${first}`)?.focus());
+    }
+
     return Object.keys(next).length === 0;
   };
 
@@ -125,7 +135,17 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
           {/* Form */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs sm:p-8 lg:col-span-2">
             {submitted ? (
-              <div className="py-8 text-center">
+              <div
+                role="status"
+                tabIndex={-1}
+                ref={(node) => {
+                  if (node && submittedRef.current !== node) {
+                    submittedRef.current = node;
+                    node.focus();
+                  }
+                }}
+                className="py-8 text-center focus:outline-none"
+              >
                 <h2 className="text-xl font-bold text-gray-900">This form is not connected yet</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
                   Nothing was sent and nothing was stored. The site has no message inbox
@@ -166,6 +186,8 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                     <input
                       id="contact-name"
                       type="text"
+                      autoComplete="name"
+                      maxLength={120}
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className={`w-full rounded-xl border p-3 text-sm focus:outline-none focus:ring-1 ${
@@ -177,7 +199,7 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                       aria-describedby={errors.name ? "contact-name-error" : undefined}
                     />
                     {errors.name && (
-                      <p id="contact-name-error" className="mt-1 text-xs text-red-600">
+                      <p id="contact-name-error" role="alert" className="mt-1 text-xs text-red-600">
                         {errors.name}
                       </p>
                     )}
@@ -193,6 +215,8 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                     <input
                       id="contact-email"
                       type="email"
+                      autoComplete="email"
+                      maxLength={200}
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       className={`w-full rounded-xl border p-3 text-sm focus:outline-none focus:ring-1 ${
@@ -204,7 +228,7 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                       aria-describedby={errors.email ? "contact-email-error" : undefined}
                     />
                     {errors.email && (
-                      <p id="contact-email-error" className="mt-1 text-xs text-red-600">
+                      <p id="contact-email-error" role="alert" className="mt-1 text-xs text-red-600">
                         {errors.email}
                       </p>
                     )}
@@ -242,6 +266,7 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                   <textarea
                     id="contact-message"
                     rows={6}
+                    maxLength={2000}
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     className={`w-full rounded-xl border p-3 text-sm focus:outline-none focus:ring-1 ${
@@ -250,11 +275,19 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                         : "border-gray-300 focus:border-primary-500"
                     }`}
                     aria-invalid={Boolean(errors.message)}
-                    aria-describedby={errors.message ? "contact-message-error" : undefined}
+                    aria-describedby={
+                      errors.message ? "contact-message-error" : "contact-message-hint"
+                    }
                   />
-                  {errors.message && (
-                    <p id="contact-message-error" className="mt-1 text-xs text-red-600">
+                  {errors.message ? (
+                    <p id="contact-message-error" role="alert" className="mt-1 text-xs text-red-600">
                       {errors.message}
+                    </p>
+                  ) : (
+                    // The 10-character rule is only discoverable after a failed
+                    // submit otherwise, so it is stated up front.
+                    <p id="contact-message-hint" className="mt-1 text-xs text-gray-500">
+                      At least 10 characters. {form.message.length}/2000.
                     </p>
                   )}
                 </div>
@@ -263,7 +296,7 @@ export function ContactForm({ contactEmail }: { contactEmail: string }) {
                   type="submit"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 sm:w-auto"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-4 w-4" aria-hidden="true" />
                   Send Message
                 </button>
               </form>

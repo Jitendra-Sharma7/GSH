@@ -29,8 +29,8 @@ export interface ScholarshipData {
   minGpa?: number;
   languageReqs: string[];
   documentsRequired: string[];
-  applicationUrl: string;
-  officialUrl: string;
+  applicationUrl: string | null;
+  officialUrl: string | null;
   verificationStatus: "Verified Recently" | "Verification Needed" | "Potentially Expired";
   lastVerifiedAt: string;
   status: "Open" | "Opening Soon" | "Closed" | "Expired";
@@ -194,8 +194,11 @@ export const handwrittenScholarships: ScholarshipData[] = [
     minGpa: 2.64, // 80% on 100-point scale
     languageReqs: ["No strict requirement initially, but TOPIK or English scores yield preference points"],
     documentsRequired: ["Application form", "Personal statement", "Statement of Purpose", "Two recommendation letters", "Medical assessment form"],
-    applicationUrl: "https://www.studyinkorea.go.kr",
-    officialUrl: "https://www.studyinkorea.go.kr/en/sub/gks/allnew_invite.do",
+      applicationUrl: "https://www.studyinkorea.go.kr",
+      // The old deep link to the GKS call page 404s, and no replacement path
+      // was verified, so this points at the programme's site root rather than a
+      // guessed page.
+      officialUrl: "https://www.studyinkorea.go.kr",
     verificationStatus: "Verification Needed",
     lastVerifiedAt: new Date(2026, 3, 10).toISOString(),
     status: "Opening Soon",
@@ -224,7 +227,7 @@ export const handwrittenScholarships: ScholarshipData[] = [
     numAwards: 2500,
     languageReqs: ["English (usually IELTS 6.5+ or TOEFL 90+)"],
     documentsRequired: ["CV", "Motivation letter", "Transcripts", "Letters of recommendation", "Proof of residence"],
-    applicationUrl: "https://eacea.ec.europa.eu/erasmus-plus/emjmd-catalogue_en",
+      applicationUrl: "https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters",
     officialUrl: "https://erasmus-plus.ec.europa.eu/opportunities/opportunities-for-individuals/students/erasmus-mundus-joint-masters",
     verificationStatus: "Verified Recently",
     lastVerifiedAt: new Date(2026, 7, 20).toISOString(),
@@ -378,7 +381,7 @@ export const handwrittenScholarships: ScholarshipData[] = [
     minGpa: 3.8, // "Outstanding academic achievement"
     languageReqs: ["IELTS 6.5 (no band below 6.0) or TOEFL iBT 89 (22 in W/S)"],
     documentsRequired: ["School Nomination", "U of T Admission Application", "Pearson Scholarship Application (by invitation)"],
-    applicationUrl: "https://future.utoronto.ca/pearson/application/",
+     applicationUrl: "https://future.utoronto.ca/pearson/",
     officialUrl: "https://future.utoronto.ca/pearson/about/",
     verificationStatus: "Verified Recently",
     lastVerifiedAt: new Date(2026, 8, 10).toISOString(),
@@ -578,8 +581,11 @@ const generateMoreScholarships = (): ScholarshipData[] => {
       minGpa: 3.5,
       languageReqs: ["IELTS 6.5 or equivalent"],
       documentsRequired: ["Transcripts", "Statement of Purpose", "CV"],
-      applicationUrl: "https://example.com/apply",
-      officialUrl: "https://example.com/scholarship",
+      // Deliberately null rather than a placeholder URL. `example.com/apply`
+      // is not a real destination, and the card rendered it as a working
+      // "Apply" link that 404s. An absent link is honest; a dead one is not.
+      applicationUrl: null,
+      officialUrl: null,
       verificationStatus: (i % 5 === 0) ? "Potentially Expired" : "Verified Recently",
       lastVerifiedAt: (i % 5 === 0) ? new Date(2025, 1, 1).toISOString() : new Date().toISOString(),
       status: (i % 4 === 0) ? "Closed" : "Open",

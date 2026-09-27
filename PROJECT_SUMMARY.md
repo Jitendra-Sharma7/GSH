@@ -85,18 +85,28 @@ src/
   server parent, or - when the data is not knowable at request time, such as the
   comparison list or a freshly requested match - from a server action in
   `app/actions/`. The JSON routes remain for external consumers and the
-  verification scripts.
+  verification scripts, and `src/proxy.ts` keeps them away from ordinary
+  visitors: `/api/public/*` answers 404 unless the caller is on the machine the
+  app runs on or presents `PUBLIC_API_KEY` as `x-api-key` (or a bearer token).
+  Allowed responses carry `X-Robots-Tag: noindex` and `Cache-Control: private,
+  no-store`. `/api/auth/*` is outside the matcher, because the OAuth start and
+  callback routes have to stay reachable by redirect.
 - Client components may import *types* from a server module but never a value.
   A value import drags the module - and Prisma - into the browser bundle, which
   `verify:bundle` catches.
+- `/robots.txt` and `/sitemap.xml` are generated from the same published rows the
+  public pages read. The sitemap lists the static pages plus every published
+  scholarship, blog post and resource, never a draft, a deleted record, or a
+  route robots.txt disallows, and `verify:links` fails if an advertised URL does
+  not answer or a published record is absent from it.
 
 ## Verification
 
-Six scripts: five drive the running server over real HTTP, and one reads the
+Nine scripts: eight drive the running server over real HTTP, and one reads the
 build output.
 
 ```bash
-npm run verify            # bundle check, then all six HTTP suites, in order
+npm run verify            # bundle check, then all eight HTTP suites, in order
 npm run verify:bundle     # no server-only code in the browser bundle
 npm run verify:auth       # session boundary, roles, logout
 npm run verify:content    # registry CRUD, publishing, submissions,
@@ -104,12 +114,23 @@ npm run verify:content    # registry CRUD, publishing, submissions,
 npm run verify:crud       # scholarship create/edit/publish/trash
 npm run verify:public     # admin edits reach the public pages
 npm run verify:forms      # every form refuses bad input and says why
+npm run verify:links      # internal links, admin links, sitemap coverage
 npm run verify:mobile     # sideways scroll, mobile nav, touch targets
+npm run verify:oauth      # provider wiring, config gating, CSRF state
 ```
 
 They need `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the environment and a server on
 `http://localhost:3000`. `verify:bundle` reads `.next/static/chunks` and needs
 `npm run build` first.
+
+`verify:links` exists because three dead links reached production here, and none
+of them looked broken in a screenshot. It crawls the public site, requests every
+route, query link and authenticated admin page, checks each external link, and
+reads `/sitemap.xml`: an entry may not be a route `robots.txt` disallows, every
+entry has to answer 200, and every published scholarship, blog post and resource
+has to be in it. Third-party hosts that answer a scripted request with 403 or
+time out are reported separately, not counted as broken - bot protection is not
+evidence that a link is wrong.
 
 `verify:mobile` covers what a desktop screenshot cannot show, and every check in
 it corresponds to something that was actually wrong here: the header's brand

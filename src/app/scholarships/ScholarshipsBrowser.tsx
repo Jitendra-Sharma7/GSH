@@ -151,11 +151,16 @@ export function ScholarshipsBrowser({
           </p>
 
           {/* Search bar */}
-          <form onSubmit={handleSearchSubmit} className="mt-5 flex gap-2">
+          <form onSubmit={handleSearchSubmit} className="mt-5 flex gap-2" role="search">
             <div className="relative flex-1">
+              <label htmlFor="scholarship-search" className="sr-only">
+                Search scholarships by keyword
+              </label>
               <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
               <input
-                type="text"
+                id="scholarship-search"
+                type="search"
+                maxLength={120}
                 value={filters.query}
                 onChange={(e) => setFilters({ ...filters, query: e.target.value })}
                 placeholder="Search by keywords, e.g. 'Master in Computer Science Germany' or 'Chevening'..."
@@ -185,7 +190,10 @@ export function ScholarshipsBrowser({
             <button
               onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
               aria-expanded={isMobileFilterOpen}
-              aria-controls="scholarship-filters"
+              // Only referenced while it exists: the panel is unmounted when
+              // closed, and pointing at a missing element is worse than not
+              // pointing at all.
+              aria-controls={isMobileFilterOpen ? "scholarship-filters" : undefined}
               className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 lg:hidden"
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -194,8 +202,11 @@ export function ScholarshipsBrowser({
 
             {/* Sort options */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-gray-500 font-medium">Sort by:</span>
+              <label htmlFor="scholarship-sort" className="text-gray-500 font-medium">
+                Sort by:
+              </label>
               <select
+                id="scholarship-sort"
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
                 className="rounded-lg border border-gray-200 bg-gray-50/50 py-1.5 px-2.5 text-xs font-medium text-gray-800 focus:border-primary-500 focus:outline-none"

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/admin/ui/primitives";
 import { atLeast, getCurrentUser, isStaff, requireStaff } from "@/lib/auth";
@@ -75,22 +75,13 @@ export default async function AdminScholarshipsPage({
         breadcrumb={[{ label: "Admin", href: "/admin/dashboard" }, { label: "Scholarships" }]}
         actions={
           canEdit ? (
-            <>
-              <Link
-                href="/admin/scholarships/import"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-              >
-                <Upload className="h-4 w-4" aria-hidden="true" />
-                Import CSV
-              </Link>
-              <Link
-                href="/admin/scholarships/new"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                Add scholarship
-              </Link>
-            </>
+            <Link
+              href="/admin/scholarships/new"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add scholarship
+            </Link>
           ) : null
         }
       />

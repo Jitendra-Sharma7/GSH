@@ -29,6 +29,43 @@ function check(label, ok, detail) {
   if (!ok) failures += 1;
 }
 
+/**
+ * The opening tag of every element of `tagName` in a JSX file, as source text.
+ *
+ * A regex cannot delimit a JSX tag on its own: `onClick={() => ...}` contains a
+ * `>` that does not close the tag, and a fixed character window between two
+ * attributes silently stops matching the moment somebody documents an attribute
+ * with a comment. Both cost a real check here, so tags are scanned instead - a
+ * `>` inside a quoted value or inside an attribute expression is part of the
+ * attribute, and only a `>` at the top level ends the tag.
+ */
+function openingTags(source, tagName) {
+  const tags = [];
+  const open = new RegExp(`<${tagName}\\b`, "g");
+  for (let match = open.exec(source); match; match = open.exec(source)) {
+    let quote = null;
+    let depth = 0;
+    for (let i = match.index + match[0].length; i < source.length; i += 1) {
+      const char = source[i];
+      if (quote) {
+        if (char === quote) quote = null;
+        continue;
+      }
+      if (char === '"' || char === "'" || char === "`") {
+        quote = char;
+      } else if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+      } else if (char === ">" && depth === 0) {
+        tags.push(source.slice(match.index, i + 1));
+        break;
+      }
+    }
+  }
+  return tags;
+}
+
 /** Every static public route. Dynamic routes are covered by their listing pages. */
 const ROUTES = [
   "/",
@@ -125,10 +162,12 @@ console.log("\n-- horizontal overflow --");
 console.log("\n-- mobile navigation --");
 {
   const header = fs.readFileSync("src/components/layout/Header.tsx", "utf8");
+  const menuToggle = openingTags(header, "button").find((tag) =>
+    tag.includes('aria-label="Toggle menu"')
+  );
   check(
     "the header offers a mobile menu toggle",
-    /<button[\s\S]{0,240}lg:hidden[\s\S]{0,240}>/.test(header) &&
-      /aria-label="Toggle menu"/.test(header),
+    Boolean(menuToggle) && /lg:hidden/.test(menuToggle),
     "no lg:hidden toggle button in the header"
   );
   check(
@@ -169,7 +208,9 @@ console.log("\n-- mobile navigation --");
 console.log("\n-- touch targets --");
 {
   const browser = fs.readFileSync("src/app/scholarships/ScholarshipsBrowser.tsx", "utf8");
-  const toggle = browser.match(/<button[\s\S]{0,400}?aria-controls="scholarship-filters"[\s\S]{0,200}?>/)?.[0];
+  const toggle = openingTags(browser, "button").find((tag) =>
+    /aria-controls=\{[^}]*"scholarship-filters"/.test(tag)
+  );
   check(
     "the scholarships filter toggle exists for mobile",
     Boolean(toggle) && /lg:hidden/.test(toggle),

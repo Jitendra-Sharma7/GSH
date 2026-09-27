@@ -116,6 +116,8 @@ export default function RegisterForm({
               type="text"
               label="Full Name"
               required
+              autoComplete="name"
+              maxLength={120}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Jane Doe"
@@ -128,6 +130,8 @@ export default function RegisterForm({
               type="email"
               label="Email address"
               required
+              autoComplete="email"
+              maxLength={200}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -145,6 +149,8 @@ export default function RegisterForm({
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={8}
+                  maxLength={200}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   aria-invalid={Boolean(errors.password)}

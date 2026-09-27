@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { Filter, RotateCcw } from "lucide-react";
 import { CountryFlagWithName } from "@/components/ui/CountryFlag";
 import type { PublicCountry, PublicField } from "@/lib/data/public";
@@ -60,6 +60,15 @@ export function SearchFilters({
     });
   };
 
+  /**
+   * This panel is rendered twice on /scholarships - a desktop sidebar and the
+   * mobile drawer - so the ids are scoped to the instance. A shared id would
+   * give the second copy duplicate ids, and every `htmlFor` would point at the
+   * first copy's control.
+   */
+  const id = useId();
+  const controlId = (name: string) => `${id}-filter-${name}`;
+
   const hasActiveFilters = Boolean(
     filters.query || filters.country || filters.field || filters.degree || filters.funding
   );
@@ -84,10 +93,14 @@ export function SearchFilters({
 
       {/* Degree Level */}
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <label
+          htmlFor={controlId("degree")}
+          className="text-xs font-semibold uppercase tracking-wider text-gray-500"
+        >
           Degree Level
         </label>
         <select
+          id={controlId("degree")}
           value={filters.degree}
           onChange={(e) => handleSelect("degree", e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -102,10 +115,14 @@ export function SearchFilters({
 
       {/* Destination Country */}
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <label
+          htmlFor={controlId("country")}
+          className="text-xs font-semibold uppercase tracking-wider text-gray-500"
+        >
           Destination Country
         </label>
         <select
+          id={controlId("country")}
           value={filters.country}
           onChange={(e) => handleSelect("country", e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -121,10 +138,14 @@ export function SearchFilters({
 
       {/* Field of Study */}
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <label
+          htmlFor={controlId("field")}
+          className="text-xs font-semibold uppercase tracking-wider text-gray-500"
+        >
           Field of Study
         </label>
         <select
+          id={controlId("field")}
           value={filters.field}
           onChange={(e) => handleSelect("field", e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -140,10 +161,14 @@ export function SearchFilters({
 
       {/* Funding Type */}
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <label
+          htmlFor={controlId("funding")}
+          className="text-xs font-semibold uppercase tracking-wider text-gray-500"
+        >
           Funding Coverage
         </label>
         <select
+          id={controlId("funding")}
           value={filters.funding}
           onChange={(e) => handleSelect("funding", e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -158,12 +183,13 @@ export function SearchFilters({
 
       {/* Quick shortcuts */}
       <div className="border-t border-gray-100 pt-4">
-        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
           Popular filters
-        </label>
+        </p>
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => handleSelect("funding", "fully-funded")}
+            aria-pressed={filters.funding === "fully-funded"}
             className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
               filters.funding === "fully-funded"
                 ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
@@ -174,6 +200,7 @@ export function SearchFilters({
           </button>
           <button
             onClick={() => handleSelect("degree", "Master's")}
+            aria-pressed={filters.degree === "Master's"}
             className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
               filters.degree === "Master's"
                 ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
@@ -185,6 +212,7 @@ export function SearchFilters({
           {germany && (
             <button
               onClick={() => handleSelect("country", germany.id)}
+              aria-pressed={filters.country === germany.id}
               className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
                 filters.country === germany.id
                   ? "border-primary-500 bg-primary-50 font-medium text-primary-700"

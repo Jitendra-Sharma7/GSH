@@ -39,10 +39,14 @@ export function HomeSearchForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {/* Field of Study */}
         <div>
-          <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
+          <label
+            htmlFor="home-study-field"
+            className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1"
+          >
             What do you want to study?
           </label>
           <select
+            id="home-study-field"
             value={studyField}
             onChange={(e) => setStudyField(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
@@ -58,10 +62,14 @@ export function HomeSearchForm({
 
         {/* Degree Level */}
         <div>
-          <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
+          <label
+            htmlFor="home-degree-level"
+            className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1"
+          >
             Study Level
           </label>
           <select
+            id="home-degree-level"
             value={degreeLevel}
             onChange={(e) => setDegreeLevel(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
@@ -76,10 +84,14 @@ export function HomeSearchForm({
 
         {/* Destination Country */}
         <div>
-          <label className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1">
+          <label
+            htmlFor="home-destination"
+            className="block text-xs font-semibold uppercase text-gray-500 mb-1 ml-1"
+          >
             Destination
           </label>
           <select
+            id="home-destination"
             value={destinationCountry}
             onChange={(e) => setDestinationCountry(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-800 transition-colors focus:border-primary-500 focus:bg-white focus:outline-none"
