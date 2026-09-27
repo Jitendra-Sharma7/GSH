@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search, ArrowRight } from "lucide-react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { COUNTRY_PAGE_SIZE } from "@/lib/page-size";
 import type { PublicCountry } from "@/lib/data/public";
 
 /** Cards shown per page. Twelve fills three columns without a long scroll. */
-const PER_PAGE = 12;
+const PER_PAGE = COUNTRY_PAGE_SIZE;
 
 function uniqueRegions(countries: PublicCountry[]): string[] {
   return Array.from(

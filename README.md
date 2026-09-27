@@ -204,7 +204,8 @@ to run against a database you want to inspect first.
 
 ## Seed data
 
-`npm run db:seed` loads 50 scholarships, 20 countries, 22 fields, 20
+`npm run db:seed` loads 50 scholarships, all 196 sovereign countries (20 with
+editorial detail, the rest with ISO reference data only), 22 fields, 20
 universities, 15 providers, 3 blog posts, 8 guides, and 15 FAQs. The datasets
 live in `prisma/seed-data/` and are imported by the seed only — no runtime code
 reads them. Re-running the seed updates existing rows by slug or question rather
@@ -212,6 +213,38 @@ than duplicating them.
 
 These are realistic sample records, not verified live opportunities. Treat them
 as placeholders until staff replace them with sourced data.
+
+## Importing scholarship data
+
+`scripts/import-scholarships.mjs` loads a JSON or CSV export into the CMS:
+
+```bash
+npm run import:scholarships -- ./data/scholarships.csv --source "DAAD open data"
+```
+
+It maps the columns onto the `Scholarship` model, resolving `Country`,
+`Provider`, `University` and `Field` relations by name (or ISO code for
+countries). Header names are matched loosely, so `Funding Type`, `fundingType`
+and `FUNDING_TYPE` are the same column; the accepted aliases are listed at the
+top of the script.
+
+Three things to know before running it:
+
+- Rows land as `DRAFT` / `VERIFICATION_NEEDED` and are kept out of the sitemap.
+  Nothing imported is public until staff publish it. Pass `--publish` only for a
+  feed you have already checked.
+- A name that does not match an existing row is **not** dropped. It is kept as
+  text on `countryNameLegacy` / `universityNameLegacy`, and the run reports how
+  many country, provider, university and subject names did not resolve so you can
+  create those records and re-run.
+- Unparseable values (a deadline of `"not a date"`) are stored as empty rather
+  than guessed at. Re-running is safe: a title whose slug already exists is
+  counted as a duplicate and skipped.
+
+Only import data you have the right to republish — an official open-data feed, a
+partner's export, or your own research. Copying another site's listings is not
+just a data problem: their editorial text is copyrighted and their terms will
+cover bulk copying.
 
 ## Further reading
 
