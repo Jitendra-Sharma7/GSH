@@ -90,7 +90,7 @@ export function CookieConsent() {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="consent-title"
@@ -100,25 +100,72 @@ export function CookieConsent() {
             }
           }}
         >
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-gray-200 bg-white shadow-xl sm:rounded-2xl">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-6">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
-                  <Cookie className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 id="consent-title" className="text-base font-bold text-gray-900">
-                    {mode === "banner" ? "We value your privacy" : "Cookie preferences"}
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {mode === "banner"
-                      ? "Choose what we're allowed to store on your device."
-                      : "Change your choice at any time."}
-                  </p>
-                </div>
+          {mode === "banner" ? (
+            /* First visit: a centred card, no category detail to read through. */
+            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-xl">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+                <Cookie className="h-5 w-5" />
               </div>
-              {mode === "preferences" && (
+
+              <h2 id="consent-title" className="text-base font-bold text-gray-900">
+                We value your privacy
+              </h2>
+
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                We use cookies to enhance your browsing experience, serve personalised ads or
+                content, and analyse our traffic. By clicking &ldquo;Accept All&rdquo;, you consent
+                to our use of cookies. See our{" "}
+                <Link
+                  href="/privacy"
+                  className="font-medium text-primary-600 underline hover:text-primary-700"
+                >
+                  privacy
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/cookies"
+                  className="font-medium text-primary-600 underline hover:text-primary-700"
+                >
+                  cookies policy
+                </Link>
+                .
+              </p>
+
+              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMode("preferences")}
+                  className="sm:order-1"
+                >
+                  Customise
+                </Button>
+                <Button variant="outline" size="sm" onClick={rejectNonEssential}>
+                  Reject All
+                </Button>
+                <Button variant="primary" size="sm" onClick={acceptAll}>
+                  Accept All
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* Customised view: the per-category detail, so each switch means something. */
+            <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-xl">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+                    <Cookie className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 id="consent-title" className="text-base font-bold text-gray-900">
+                      Cookie preferences
+                    </h2>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      Change your choice at any time.
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setDismissed(true)}
@@ -127,155 +174,122 @@ export function CookieConsent() {
                 >
                   <X className="h-4 w-4" />
                 </button>
-              )}
-            </div>
-
-            {/* Body */}
-            <div className="space-y-4 p-5 sm:p-6">
-              {mode === "banner" ? (
-                <p className="text-sm leading-relaxed text-gray-700">
-                  We use cookies and similar technologies to run this site, remember your saved
-                  scholarships and preferences, and — only with your permission — to measure how the
-                  platform is used. You can accept everything, keep only what is strictly necessary,
-                  or choose per category.
-                </p>
-              ) : null}
+              </div>
 
               {/* Category controls */}
-              <fieldset className="space-y-3">
-                <legend className="sr-only">Cookie categories</legend>
-                {CONSENT_CATEGORIES.map((cat) => {
-                  const isOn = cat.locked ? true : decision[cat.id as OptionalCategory];
-                  return (
-                    <div
-                      key={cat.id}
-                      className="rounded-xl border border-gray-200 bg-gray-50/50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <label
-                            htmlFor={`consent-${cat.id}`}
-                            className="flex items-center gap-2 text-sm font-semibold text-gray-900"
-                          >
-                            {cat.label}
-                            {cat.locked && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
-                                <ShieldCheck className="h-3 w-3" />
-                                Always on
-                              </span>
+              <div className="space-y-4 p-5 sm:p-6">
+                <fieldset className="space-y-3">
+                  <legend className="sr-only">Cookie categories</legend>
+                  {CONSENT_CATEGORIES.map((cat) => {
+                    const isOn = cat.locked ? true : decision[cat.id as OptionalCategory];
+                    return (
+                      <div
+                        key={cat.id}
+                        className="rounded-xl border border-gray-200 bg-gray-50/50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <label
+                              htmlFor={`consent-${cat.id}`}
+                              className="flex items-center gap-2 text-sm font-semibold text-gray-900"
+                            >
+                              {cat.label}
+                              {cat.locked && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                                  <ShieldCheck className="h-3 w-3" />
+                                  Always on
+                                </span>
+                              )}
+                              {!cat.locked && !cat.active && (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                  Not currently set
+                                </span>
+                              )}
+                            </label>
+                            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+                              {cat.description}
+                            </p>
+                            {cat.examples.length > 0 && (
+                              <ul className="mt-2 space-y-0.5">
+                                {cat.examples.map((ex) => (
+                                  <li
+                                    key={ex}
+                                    className="text-[11px] text-gray-500 before:mr-1.5 before:text-gray-400 before:content-['•']"
+                                  >
+                                    {ex}
+                                  </li>
+                                ))}
+                              </ul>
                             )}
-                            {!cat.locked && !cat.active && (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                                Not currently set
-                              </span>
-                            )}
-                          </label>
-                          <p className="mt-1 text-xs leading-relaxed text-gray-600">
-                            {cat.description}
-                          </p>
-                          {cat.examples.length > 0 && (
-                            <ul className="mt-2 space-y-0.5">
-                              {cat.examples.map((ex) => (
-                                <li
-                                  key={ex}
-                                  className="text-[11px] text-gray-500 before:mr-1.5 before:text-gray-400 before:content-['•']"
-                                >
-                                  {ex}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
+                          </div>
 
-                        <button
-                          id={`consent-${cat.id}`}
-                          type="button"
-                          role="switch"
-                          aria-checked={isOn}
-                          aria-label={`${cat.label} cookies`}
-                          disabled={cat.locked}
-                          onClick={() => toggle(cat.id, cat.locked)}
-                          className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
-                            isOn ? "bg-primary-600" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                              isOn ? "translate-x-5" : "translate-x-0.5"
+                          <button
+                            id={`consent-${cat.id}`}
+                            type="button"
+                            role="switch"
+                            aria-checked={isOn}
+                            aria-label={`${cat.label} cookies`}
+                            disabled={cat.locked}
+                            onClick={() => toggle(cat.id, cat.locked)}
+                            className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isOn ? "bg-primary-600" : "bg-gray-300"
                             }`}
-                          />
-                        </button>
+                          >
+                            <span
+                              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                                isOn ? "translate-x-5" : "translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </fieldset>
+                    );
+                  })}
+                </fieldset>
 
-              <p className="text-xs leading-relaxed text-gray-500">
-                Read our{" "}
-                <Link href="/privacy" className="font-medium text-primary-600 underline hover:text-primary-700">
-                  Privacy Policy
-                </Link>{" "}
-                and{" "}
-                <Link href="/cookies" className="font-medium text-primary-600 underline hover:text-primary-700">
-                  Cookie Policy
-                </Link>{" "}
-                for full details. Withdrawing consent is as easy as granting it.
-              </p>
-            </div>
+                <p className="text-xs leading-relaxed text-gray-500">
+                  Read our{" "}
+                  <Link
+                    href="/privacy"
+                    className="font-medium text-primary-600 underline hover:text-primary-700"
+                  >
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/cookies"
+                    className="font-medium text-primary-600 underline hover:text-primary-700"
+                  >
+                    Cookie Policy
+                  </Link>{" "}
+                  for full details. Withdrawing consent is as easy as granting it.
+                </p>
+              </div>
 
-            {/* Actions */}
-            <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              {/* Actions */}
+              <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     resetConsent();
                     setDecision({ functional: false, analytics: false, marketing: false });
-                    setMode("preferences");
-                    setDismissed(false);
                   }}
                 >
                   Clear choice
                 </Button>
-              </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                {mode === "banner" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setMode("preferences");
-                    }}
-                    className="sm:order-1"
-                  >
-                    Manage choices
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button variant="outline" size="sm" onClick={rejectNonEssential}>
+                    Reject All
                   </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={rejectNonEssential}>
-                  Necessary only
-                </Button>
-                <Button variant="primary" size="sm" onClick={acceptAll}>
-                  Accept all
-                </Button>
+                  <Button variant="primary" size="sm" onClick={save.bind(null, decision)}>
+                    Save preferences
+                  </Button>
+                </div>
               </div>
             </div>
-
-            {mode === "preferences" && (
-              <div className="border-t border-gray-100 p-5 sm:p-6">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => save(decision)}
-                  className="w-full sm:w-auto"
-                >
-                  Save preferences
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
     </>
