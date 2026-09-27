@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, Inbox, RotateCcw } from "lucide-react";
 import { Container } from "@/components/layout/Layout";
@@ -9,17 +9,22 @@ import { SearchFilters } from "@/components/scholarships/SearchFilters";
 import { fetchPublicScholarships } from "@/app/actions/public-actions";
 import type { Paginated, PublicCountry, PublicField, PublicScholarship } from "@/lib/data/public";
 
+import { SCHOLARSHIP_PAGE_SIZE } from "@/lib/page-size";
+
 /**
- * The browsing UI. Filter options arrive as props from the server page; result
- * pages are requested through a server action rather than a public JSON route,
- * so the browser holds no API surface of its own.
+ * The browsing UI. Filter options and the first page of results arrive from the
+ * server page as props, so the served HTML already contains real records; later
+ * pages and filter changes are requested through a server action rather than a
+ * public JSON route, so the browser holds no API surface of its own.
  */
 export function ScholarshipsBrowser({
   countries,
-  fields
+  fields,
+  initialResult,
 }: {
   countries: PublicCountry[];
   fields: PublicField[];
+  initialResult: Paginated<PublicScholarship>;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -35,14 +40,10 @@ export function ScholarshipsBrowser({
 
   const [sortOption, setSortOption] = useState("relevance");
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<Paginated<PublicScholarship>>({
-    data: [],
-    total: 0,
-    page: 1,
-    totalPages: 1,
-    hasMore: false,
-  });
-  const [loading, setLoading] = useState(true);
+  // Seeded from the server render, so the first paint is the real result set
+  // rather than a skeleton and the result count is in the HTML.
+  const [result, setResult] = useState<Paginated<PublicScholarship>>(initialResult);
+  const [loading, setLoading] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Re-sync filters when the URL changes (e.g. a country tile links in with
@@ -63,8 +64,20 @@ export function ScholarshipsBrowser({
     setPage(1);
   }
 
+  // The server already rendered this exact request, so the first effect run has
+  // nothing to fetch. Cleared on first use, so returning to the same filters
+  // later refetches instead of showing a stale list.
+  const servedKey = `${JSON.stringify(filters)}|${page}|${sortOption}`;
+  const skipKeyRef = useRef<string | null>(servedKey);
+
   // Load the current result page when filters or page change
   useEffect(() => {
+    const key = `${JSON.stringify(filters)}|${page}|${sortOption}`;
+    if (skipKeyRef.current !== null && skipKeyRef.current === key) {
+      skipKeyRef.current = null;
+      return;
+    }
+
     let active = true;
     async function load() {
       setLoading(true);
@@ -72,7 +85,7 @@ export function ScholarshipsBrowser({
         const res = await fetchPublicScholarships({
           ...filters,
           page,
-          limit: 9,
+          limit: SCHOLARSHIP_PAGE_SIZE,
         });
         if (!active) return;
 
